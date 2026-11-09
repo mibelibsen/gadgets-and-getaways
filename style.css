@@ -15,6 +15,9 @@
 html{-webkit-text-size-adjust:100%}
 body{margin:0;background:var(--midnight);color:var(--ivory);font-family:var(--font-body);font-size:17px;line-height:1.55}
 img{max-width:100%;display:block}
+[hidden]{display:none!important}
+h1,h2,h3,.artikel,.indlaeg strong{overflow-wrap:break-word}
+.artikel-top>*,.artikel-net>*{min-width:0}
 a{color:var(--ivory)}
 a:hover{color:var(--accent)}
 .lys a,.sten a{color:var(--midnight)}
@@ -335,3 +338,52 @@ h2.mellem{font-size:clamp(44px,5vw,72px);line-height:.95}
   .eks.rektangel,.eks.hotel300,.eks.halvside{max-width:100%}
 }
 @media (prefers-reduced-motion:reduce){*{transition:none!important;scroll-behavior:auto!important}}
+
+/* Blog og anmeldelser */
+.blog-top{padding-top:56px;padding-bottom:40px}
+.blog-top h1{font-size:clamp(56px,7vw,104px);line-height:.95}
+.blog-top h1 em{color:var(--accent)}
+.filter{display:flex;flex-wrap:wrap;gap:8px;margin-top:32px}
+.filter button{min-height:44px;padding:0 20px;border-radius:var(--radius-pill);border:1px solid var(--line);background:transparent;color:var(--ivory);font:inherit;font-weight:500;cursor:pointer}
+.filter button[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--midnight)}
+.filter button:hover{border-color:var(--accent)}
+.tom{padding:48px;border-radius:var(--radius-card);border:1px dashed var(--line);color:var(--soft-dark);max-width:560px}
+.alle-link{font-weight:600}
+.artikel ul{margin:0;padding-left:1.2em;display:flex;flex-direction:column;gap:8px}
+.artikel h3{font-size:30px;line-height:1.1;margin:16px 0 0}
+.artikel figure{margin:8px 0}
+.artikel figure img{width:100%;height:auto;border-radius:16px}
+.artikel figcaption{margin-top:8px;font-size:14px;color:var(--muted-light)}
+.artikel a{color:var(--brass)}
+.topbillede img{width:100%;height:100%;object-fit:cover}
+.fejl-besked{padding:24px;border-radius:var(--radius-card);border:1px solid var(--border-light);background:var(--white)}
+
+/* Editor (admin/blog) */
+.ed{max-width:960px;margin:0 auto;padding:40px 0 96px}
+.ed h1{font-size:clamp(40px,5vw,64px);line-height:1}
+.ed-bar{display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:space-between;margin:24px 0}
+.ed-liste{display:flex;flex-direction:column;border-top:1px solid var(--line)}
+.ed-raekke{display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:space-between;padding:16px 0;border-bottom:1px solid var(--line)}
+.ed-raekke strong{font-family:var(--font-display);font-weight:400;font-size:26px;line-height:1.1}
+.ed-raekke .sub{font-family:var(--font-mono);font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted-dark)}
+.ed-raekke .sub b{font-weight:500;color:var(--accent)}
+.ed-form{display:flex;flex-direction:column;gap:20px}
+.ed-form fieldset{border:1px solid var(--line);border-radius:var(--radius-card);padding:24px;margin:0;display:flex;flex-direction:column;gap:16px;min-width:0}
+.ed-form legend{padding:0 8px;font-family:var(--font-mono);font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--accent)}
+.ed-form label{font-weight:600;display:block;margin-bottom:6px}
+.ed-form .hint{font-size:13px;color:var(--muted-dark);margin:6px 0 0}
+.ed-form input[type=text],.ed-form input[type=url],.ed-form input[type=number],.ed-form select,.ed-form textarea{width:100%;min-height:52px;padding:12px 16px;border-radius:14px;border:1.5px solid var(--line);background:var(--deep);color:var(--ivory);font:inherit;font-size:16px}
+.ed-form textarea{min-height:120px;line-height:1.5;resize:vertical}
+.ed-form textarea.stor{min-height:420px;font-family:var(--font-mono);font-size:15px}
+.ed-form input:focus,.ed-form select:focus,.ed-form textarea:focus{border-color:var(--accent)}
+.ed-form .to{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,260px),1fr));gap:16px}
+.ed-form .check{display:flex;align-items:center;gap:12px;font-weight:500}
+.ed-form .check input{width:24px;height:24px}
+.ed-form .check label{margin:0;font-weight:500}
+.ed-knapper{display:flex;flex-wrap:wrap;gap:12px;position:sticky;bottom:0;padding:16px 0;background:var(--midnight);border-top:1px solid var(--line)}
+.ed-knapper .fare{border:1px solid #FF7A6E;color:#FF7A6E;background:transparent;margin-left:auto}
+.ed-billede{display:flex;flex-wrap:wrap;gap:16px;align-items:center}
+.ed-billede img{width:120px;height:80px;object-fit:cover;border-radius:10px;border:1px solid var(--line)}
+.ed-status{min-height:1.5em;font-weight:500}
+.ed-status.fejl{color:#FF9A8F}
+.ed-status.ok{color:var(--accent)}
