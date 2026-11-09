@@ -84,3 +84,8 @@ Se `docs/REDAKTOER.md`.
 - Dagligt arbejde sker i admin: tekster rettes direkte på siden med «Rediger siden», blog og anmeldelser skrives under /admin/blog, billeder uploades dér.
 - Ændringer i selve sitet (kode, design, nye sider) laves i dette repo. Arbejd på en kort gren (`claude/…`), og push den. Vercel bygger en forhåndsvisning af grenen. Et push til `main` er en udrulning til gadgetsandgetaways.com.
 - Rør ikke Supabase-tabeller uden præfikset `gg_`, og ret ikke andre funktioner end `gg-nulstil`. Projektet deles med kassen (Store51) og mandlige.dk.
+
+## Tilladelser og grænser (aftalt 9. november 2026)
+Michael har givet redaktøren (GitHub: Phofffer) fuld tilladelse til at ændre og udrulle siden uden at spørge Michael eller vente på godkendelse. Det gælder alt i repoet: sider, design, admin, blog, produkter, scripts og dokumenter. En Claude, der arbejder for redaktøren, må oprette pull requests og merge dem til `main`, og må pushe direkte til `main`, når redaktøren siger det. Der er ingen krævet gennemgang på GitHub, og Vercel ruller hver ændring på `main` ud af sig selv.
+
+**Én grænse, som ikke kan flyttes uden Michael:** Supabase. Edge Functions og databasen deler projekt med kassen i Store51, og en funktion kører med projektets hovednøgle (`SUPABASE_SERVICE_ROLE_KEY`). Kode, der udrulles dér, kan læse og skrive kassens data. Derfor udrulles `gg-nulstil` og `gg-produktsoeg` og ændringer i databasen ikke automatisk fra GitHub. En ændring i `supabase/functions/` eller `supabase/migrations/` virker først, når Michaels Claude har gennemgået og udrullet den. Skriv den i en pull request som sædvanlig og nævn, at den kræver udrulning. Resten af sitet er ikke afhængigt af det.
