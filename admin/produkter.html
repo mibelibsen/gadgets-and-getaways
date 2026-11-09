@@ -55,13 +55,14 @@ details.afvist summary{cursor:pointer;min-height:44px;display:flex;align-items:c
 </div>
 <div class="to">
 <div><label for="s-antal">Antal forslag</label>
-<select id="s-antal"><option value="4">4</option><option value="6" selected>6</option><option value="8">8</option></select></div>
+<select id="s-antal"><option value="4">4</option><option value="6" selected>6</option><option value="8">8</option><option value="12">12</option><option value="16">16</option><option value="20">20</option></select></div>
 <div style="align-self:end"><button class="knap" type="submit" id="s-knap">Søg</button></div>
 </div>
-<p class="hint">En søgning tager typisk 30 til 90 sekunder. Der kan søges højst 30 gange i timen.</p>
+<p class="hint">En søgning tager typisk 30 til 90 sekunder, og flere forslag tager længere tid. Søgningen kører i baggrunden, så du kan vente på siden. Der kan søges højst 30 gange i timen.</p>
 </fieldset>
 </form>
 <p class="ed-status" id="s-status" role="status" aria-live="polite"></p>
+<div class="ed-form" id="res-sort-boks" hidden style="margin-top:12px"><div style="max-width:320px"><label for="res-sort">Sortér forslagene</label><select id="res-sort"><option value="">Anbefalet rækkefølge</option><option value="pris-op">Laveste pris først</option><option value="pris-ned">Højeste pris først</option><option value="rabat">Største rabat først</option></select></div></div>
 <div class="res-net" id="res"></div>
 <details class="afvist" id="afvist" hidden><summary id="afvist-tit"></summary><ul id="afvist-liste"></ul></details>
 
@@ -69,6 +70,7 @@ details.afvist summary{cursor:pointer;min-height:44px;display:flex;align-items:c
 <section class="sektion">
 <h2>Dine produkter</h2>
 <div class="ed-bar"><button class="knap-ud" type="button" id="nyt">Tilføj produkt selv</button><span class="ed-status" id="l-status" role="status" aria-live="polite"></span></div>
+<div class="ed-form" style="margin-bottom:16px"><div style="max-width:320px"><label for="l-sort">Sortér</label><select id="l-sort"><option value="">Senest rettet</option><option value="pris-op">Laveste pris først</option><option value="pris-ned">Højeste pris først</option><option value="rabat">Største rabat først</option></select></div></div>
 <div class="ed-liste" id="liste"></div>
 </section>
 </div>
@@ -99,9 +101,10 @@ details.afvist summary{cursor:pointer;min-height:44px;display:flex;align-items:c
 <div><label for="e-valuta">Valuta</label><input type="text" id="e-valuta" maxlength="3" value="DKK"></div>
 <div><label for="e-forh">Forhandler for laveste pris</label><input type="text" id="e-forh" maxlength="100"></div>
 <div><label for="e-link">Link til laveste pris</label><input type="url" id="e-link" maxlength="1000"></div>
+<div><label for="e-foer">Førpris (før nedsættelsen, valgfri)</label><input type="text" inputmode="decimal" id="e-foer"><p class="hint">Rabatten vises kun på siden, når førprisen er læst på forhandlerens side eller du har sat hak nedenfor.</p></div>
 </div>
 <div class="res-knapper"><button class="knap-ud knap-lille" type="button" id="e-billigst">Brug billigste tilbud</button><button class="knap-ud knap-lille" type="button" id="e-opdater">Find nye priser (søgning)</button></div>
-<div class="check"><input type="checkbox" id="e-tjekket"><label for="e-tjekket">Jeg har selv tjekket prisen og linket i dag</label></div>
+<div class="check"><input type="checkbox" id="e-tjekket"><label for="e-tjekket">Jeg har selv tjekket prisen, rabatten og linket i dag</label></div>
 <p class="hint" id="e-pris-info"></p>
 </fieldset>
 <fieldset>
@@ -140,6 +143,29 @@ const tilTal=v=>{if(v==null)return null;let s=String(v).replace(/[^\d.,]/g,"");i
 const pen=(n,v)=>n==null?"–":new Intl.NumberFormat("da-DK",{maximumFractionDigits:2}).format(Number(n))+" "+(v||"DKK");
 const https=u=>/^https:\/\//i.test(String(u||"").trim());
 async function fejlTekst(error,standard){try{const j=await error.context.json();if(j&&j.fejl)return j.fejl}catch(e){}return standard}
+// Søgninger kører som baggrundsjob: funktionen svarer med et job-id, og vi henter resultatet fra jobtabellen.
+const venT=ms=>new Promise(r=>setTimeout(r,ms));
+async function koerJob(body,tik){
+  const {data,error}=await sb.functions.invoke("gg-produktsoeg",{body});
+  if(error)throw new Error(await fejlTekst(error,"Søgningen kunne ikke starte. Prøv igen om lidt."));
+  if(!data||!data.job)throw new Error((data&&data.fejl)||"Søgningen kunne ikke starte.");
+  const start=Date.now();
+  while(Date.now()-start<5*60*1000){
+    await venT(3000);
+    if(tik)tik(Math.round((Date.now()-start)/1000));
+    const {data:j,error:e2}=await sb.from("gg_soeg_jobs").select("status,resultat,fejl").eq("id",data.job).single();
+    if(e2)continue;
+    if(j.status==="faerdig")return j.resultat;
+    if(j.status==="fejl")throw new Error(j.fejl||"Søgningen mislykkedes.");
+  }
+  throw new Error("Søgningen blev ikke færdig inden for fem minutter. Prøv igen med færre forslag.");
+}
+const pct=(foer,pris)=>(foer!=null&&pris!=null&&Number(foer)>Number(pris))?Math.round((Number(foer)-Number(pris))/Number(foer)*100):null;
+const sorterListe=(rows,valg,pris,rabat)=>{
+  if(!valg)return rows;
+  const v=valg==="rabat"?rabat:pris,ned=valg!=="pris-op";
+  return [...rows].sort((a,b)=>{const x=v(a),y=v(b);if(x==null&&y==null)return 0;if(x==null)return 1;if(y==null)return -1;return ned?y-x:x-y});
+};
 
 for(const k in KAT){["s-kat","e-kat"].forEach(id=>{const o=lav("option",null,KAT[k]);o.value=k;$(id).append(o)})}
 
@@ -156,23 +182,28 @@ async function start(){
 let fundet=[];
 $("f-soeg").addEventListener("submit",async e=>{
   e.preventDefault();
-  $("s-knap").disabled=true;status("s-status","Søger … det kan tage op til et minut. Lad siden stå åben.");
-  $("res").replaceChildren();$("afvist").hidden=true;
-  const {data,error}=await sb.functions.invoke("gg-produktsoeg",{body:{action:"find",category:$("s-kat").value,query:$("s-q").value.trim(),antal:parseInt($("s-antal").value,10)}});
+  $("s-knap").disabled=true;status("s-status","Søger … det kan tage et minut eller to. Lad siden stå åben.");
+  $("res").replaceChildren();$("afvist").hidden=true;$("res-sort-boks").hidden=true;
+  let data;
+  try{data=await koerJob({action:"find",category:$("s-kat").value,query:$("s-q").value.trim(),antal:parseInt($("s-antal").value,10)},t=>status("s-status","Søger … "+t+" sekunder. Lad siden stå åben."))}
+  catch(err){$("s-knap").disabled=false;status("s-status",err.message,"fejl");return}
   $("s-knap").disabled=false;
-  if(error){status("s-status",await fejlTekst(error,"Søgningen mislykkedes. Prøv igen om lidt."),"fejl");return}
   fundet=data.produkter||[];
-  status("s-status",fundet.length?`Fandt ${fundet.length} forslag i «${data.kategori}». Tjek dem, før du deler.`:"Søgningen fandt ingen forslag, der kunne kontrolleres. Prøv andre søgeord.",fundet.length?"ok":"fejl");
-  visFundet();
+  let tekst=fundet.length?`Fandt ${fundet.length} forslag i «${data.kategori}». Tjek dem, før du deler.`:"Søgningen fandt ingen forslag, der kunne kontrolleres. Prøv andre søgeord.";
+  if(data.notat)tekst+=" "+data.notat;
+  status("s-status",tekst,fundet.length?"ok":"fejl");
+  $("res-sort").value="";visFundet();
   const af=data.afvist||[];
   if(af.length){$("afvist-tit").textContent=af.length+" forslag blev kasseret ved kontrollen";const l=$("afvist-liste");l.replaceChildren();af.forEach(a=>l.append(lav("li",null,a.navn+": "+a.grund)));$("afvist").hidden=false}
 });
+$("res-sort").addEventListener("change",visFundet);
 
 function visFundet(){
   const r=$("res");r.replaceChildren();
-  fundet.forEach((p,i)=>r.append(resKort(p,i)));
+  $("res-sort-boks").hidden=fundet.length<2;
+  sorterListe(fundet,$("res-sort").value,p=>p.price_amount==null?null:Number(p.price_amount),p=>pct(p.price_was,p.price_amount)).forEach(p=>r.append(resKort(p)));
 }
-function resKort(p,i){
+function resKort(p){
   const k=lav("div","res");
   k.append(lav("span","sub",(KAT[p.category]||p.category)+(p.brand?" · "+p.brand:"")));
   k.append(lav("h3",null,p.name));
@@ -180,31 +211,37 @@ function resKort(p,i){
   const pr=lav("p",p.price_verified?"ok":"nej");
   pr.textContent=p.price_amount!=null?`Laveste pris: ${pen(p.price_amount,p.price_currency)} hos ${p.price_retailer||"?"} · ${p.price_verified?"pris læst på selve siden":"pris IKKE bekræftet på siden (kommer fra søgningen)"}`:"Ingen pris fundet";
   k.append(pr);
+  const rp=pct(p.price_was,p.price_amount);
+  if(rp!=null){const rl=lav("p",p.discount_verified?"ok":"nej");rl.textContent=`Rabat: ${rp} % (før ${pen(p.price_was,p.price_currency)}) · ${p.discount_verified?"førpris læst på selve siden":"førpris IKKE bekræftet (kommer fra søgningen)"}`;k.append(rl)}
   const ul=lav("ul");
   (p.offers||[]).forEach(o=>{
     const li=lav("li");const a=lav("a",null,o.retailer||"Forhandler");a.href=o.url;a.target="_blank";a.rel="noopener";
-    li.append(a,document.createTextNode(` ${pen(o.price,o.currency)} · ${o.verified?"pris bekræftet":o.checked?"side åbnet, pris ikke læst":"side kunne ikke åbnes af os"}`));
+    li.append(a,document.createTextNode(` ${pen(o.price,o.currency)}${pct(o.was,o.price)!=null?` (før ${pen(o.was,o.currency)}, −${pct(o.was,o.price)} %)`:""} · ${o.suspect?"OBS: pris læst på siden, men den afviger meget fra de andre tilbud. Tjek selv":o.verified?"pris bekræftet":o.checked?"side åbnet, pris ikke læst":"side kunne ikke åbnes af os"}`));
     ul.append(li);
   });
   k.append(ul);
-  const ch=lav("div","check");const cb=lav("input");cb.type="checkbox";cb.id="tj-"+i;const lb=lav("label",null,"Jeg har selv åbnet linket og tjekket prisen");lb.htmlFor=cb.id;
-  if(p.price_verified){cb.checked=true;cb.disabled=true;lb.textContent="Prisen er bekræftet på selve siden"}
+  const trengerTjek=!p.price_verified||(rp!=null&&!p.discount_verified);
+  const ch=lav("div","check");const cb=lav("input");cb.type="checkbox";cb.id="tj-"+Math.random().toString(36).slice(2,8);const lb=lav("label");lb.htmlFor=cb.id;
+  if(trengerTjek)lb.textContent="Jeg har selv åbnet linket og tjekket prisen"+(rp!=null?" og rabatten":"");
+  else{cb.checked=true;cb.disabled=true;lb.textContent=rp!=null?"Pris og rabat er bekræftet på selve siden":"Prisen er bekræftet på selve siden"}
   ch.append(cb,lb);k.append(ch);
   const kn=lav("div","res-knapper");
   const udgiv=lav("button","knap knap-lille","Udgiv på siden");udgiv.type="button";
   const kladde=lav("button","knap-ud knap-lille","Gem som kladde");kladde.type="button";
   const skip=lav("button","knap-ud knap-lille","Drop");skip.type="button";
+  const fjern=()=>{const i=fundet.indexOf(p);if(i>=0)fundet.splice(i,1);visFundet()};
   const gem=async st=>{
     if(st==="published"&&p.price_amount!=null&&!p.price_verified&&!cb.checked){status("s-status","Åbn linket og tjek prisen, og sæt hak, før du udgiver «"+p.name+"».","fejl");return}
     udgiv.disabled=kladde.disabled=true;
-    const rad={status:st,category:p.category,name:p.name,brand:p.brand||null,why:tom(why.value),offers:p.offers||[],price_amount:p.price_amount,price_currency:p.price_currency||"DKK",price_retailer:p.price_retailer,price_url:p.price_url,price_verified:!!(p.price_verified||cb.checked),price_checked_at:p.price_checked_at||idag(),source:"ai",found_query:p.found_query,affiliate:true,created_by:mig};
+    const foerOk=p.price_was!=null&&rp!=null;
+    const rad={status:st,category:p.category,name:p.name,brand:p.brand||null,why:tom(why.value),offers:p.offers||[],price_amount:p.price_amount,price_currency:p.price_currency||"DKK",price_retailer:p.price_retailer,price_url:p.price_url,price_verified:!!(p.price_verified||cb.checked),price_checked_at:p.price_checked_at||idag(),price_was:foerOk?p.price_was:null,discount_verified:foerOk&&!!(p.discount_verified||cb.checked),source:"ai",found_query:p.found_query,affiliate:true,created_by:mig};
     const {error}=await sb.from("gg_products").insert(rad);
     udgiv.disabled=kladde.disabled=false;
     if(error){status("s-status",error.code==="23505"?"«"+p.name+"» findes allerede blandt dine produkter.":"Kunne ikke gemme: "+error.message,"fejl");return}
-    fundet.splice(i,1);visFundet();status("s-status","«"+p.name+"» er "+(st==="published"?"udgivet på siden.":"gemt som kladde."),"ok");hentListe();
+    fjern();status("s-status","«"+p.name+"» er "+(st==="published"?"udgivet på siden.":"gemt som kladde."),"ok");hentListe();
   };
   udgiv.addEventListener("click",()=>gem("published"));kladde.addEventListener("click",()=>gem("draft"));
-  skip.addEventListener("click",()=>{fundet.splice(i,1);visFundet()});
+  skip.addEventListener("click",fjern);
   kn.append(udgiv,kladde,skip);k.append(kn);
   return k;
 }
@@ -212,14 +249,19 @@ function resKort(p,i){
 // ---------- Liste ----------
 async function hentListe(){
   status("l-status","Henter …");
-  const {data,error}=await sb.from("gg_products").select("id,category,name,brand,status,price_amount,price_currency,updated_at").order("updated_at",{ascending:false});
+  const {data,error}=await sb.from("gg_products").select("id,category,name,brand,status,price_amount,price_currency,price_was,discount_verified,updated_at").order("updated_at",{ascending:false});
   if(error){status("l-status","Kunne ikke hente produkter: "+error.message,"fejl");return}
   status("l-status",data.length?"":"Ingen produkter endnu. Søg ovenfor, eller tilføj et selv.");
+  alleProdukter=data;visListe();
+}
+let alleProdukter=[];
+$("l-sort").addEventListener("change",visListe);
+function visListe(){
   const l=$("liste");l.replaceChildren();
-  data.forEach(p=>{
+  sorterListe(alleProdukter,$("l-sort").value,p=>p.price_amount==null?null:Number(p.price_amount),p=>pct(p.price_was,p.price_amount)).forEach(p=>{
     const r=lav("div","ed-raekke");const t=lav("div");t.append(lav("strong",null,p.name));
     const sub=lav("div","sub");sub.append(lav("b",null,p.status==="published"?"Udgivet":"Kladde"));
-    sub.append(document.createTextNode(" · "+(KAT[p.category]||p.category)+(p.price_amount!=null?" · fra "+pen(p.price_amount,p.price_currency):"")));
+    sub.append(document.createTextNode(" · "+(KAT[p.category]||p.category)+(p.price_amount!=null?" · fra "+pen(p.price_amount,p.price_currency):"")+(pct(p.price_was,p.price_amount)!=null?" · −"+pct(p.price_was,p.price_amount)+" %"+(p.discount_verified?"":" (ikke bekræftet)"):"")));
     t.append(sub);
     const b=lav("button","knap-ud knap-lille","Rediger");b.type="button";b.addEventListener("click",()=>aabn(p.id));
     r.append(t,b);l.append(r);
@@ -241,7 +283,7 @@ function fyld(p){
   $("e-billede").value=p.image_url||"";$("e-alt").value=p.image_alt||"";visBillede();
   $("e-offers").value=offersTekst(p.offers);
   $("e-pris").value=p.price_amount==null?"":String(p.price_amount).replace(".",",");$("e-valuta").value=p.price_currency||"DKK";
-  $("e-forh").value=p.price_retailer||"";$("e-link").value=p.price_url||"";
+  $("e-forh").value=p.price_retailer||"";$("e-link").value=p.price_url||"";$("e-foer").value=p.price_was==null?"":String(p.price_was).replace(".",",");
   $("e-tjekket").checked=false;$("e-tjekket").disabled=!!p.price_verified&&false;
   $("e-pris-info").textContent=p.price_amount==null?"":(p.price_verified?"Prisen er bekræftet":"Prisen er ikke bekræftet")+(p.price_checked_at?" (senest tjekket "+p.price_checked_at+")":"")+".";
   $("e-aff").checked=p.affiliate!==false;$("e-ai").checked=p.source==="ai";
@@ -289,14 +331,15 @@ $("e-billigst").addEventListener("click",()=>{
 $("e-opdater").addEventListener("click",async()=>{
   const navn=$("e-navn").value.trim();if(navn.length<2){status("e-status","Skriv produktets navn først.","fejl");return}
   $("e-opdater").disabled=true;status("e-status","Søger efter priser … det kan tage op til et minut.");
-  const {data,error}=await sb.functions.invoke("gg-produktsoeg",{body:{action:"priser",name:navn,brand:$("e-brand").value.trim()}});
+  let data;
+  try{data=await koerJob({action:"priser",name:navn,brand:$("e-brand").value.trim()},t=>status("e-status","Søger efter priser … "+t+" sekunder."))}
+  catch(err){$("e-opdater").disabled=false;status("e-status",err.message,"fejl");return}
   $("e-opdater").disabled=false;
-  if(error){status("e-status",await fejlTekst(error,"Søgningen mislykkedes."),"fejl");return}
   const of=data.offers||[];
   if(!of.length){status("e-status","Fandt ingen priser, der kunne kontrolleres.","fejl");return}
   nu=Object.assign({},nu,{offers:of});
   $("e-offers").value=offersTekst(of);
-  const b=data.bedst;if(b&&b.price!=null){$("e-pris").value=String(b.price).replace(".",",");$("e-forh").value=b.retailer;$("e-link").value=b.url;$("e-valuta").value=b.currency||"DKK";nu.price_verified=!!b.verified}
+  const b=data.bedst;if(b&&b.price!=null){$("e-pris").value=String(b.price).replace(".",",");$("e-forh").value=b.retailer;$("e-link").value=b.url;$("e-valuta").value=b.currency||"DKK";$("e-foer").value=b.was!=null?String(b.was).replace(".",","):"";nu.price_amount=b.price;nu.price_verified=!!b.verified;nu.price_was=b.was??null;nu.discount_verified=!!b.was_verified}
   $("e-pris-info").textContent=nu.price_verified?"Prisen er læst på selve siden i dag.":"Prisen er IKKE bekræftet på siden. Åbn linket og tjek den.";
   status("e-status",`Fandt ${of.length} tilbud. Tjek dem, og gem.`,"ok");
 });
@@ -312,8 +355,11 @@ function samlProdukt(st){
     if(pris!=null&&!verified)return {fejl:"Åbn linket og tjek prisen, og sæt hak ved «Jeg har selv tjekket prisen», før du udgiver."};
   }
   const gemt=nu&&nu.price_checked_at&&verified&&!$("e-tjekket").checked?nu.price_checked_at:idag();
+  let foer=tilTal($("e-foer").value);
+  if(foer!=null&&(pris==null||!(foer>pris)))return {fejl:"Førprisen skal være højere end laveste pris. Ret den, eller slet den."};
+  const rabatOk=foer!=null&&(!!(nu&&nu.discount_verified&&nu.price_was!=null&&Number(nu.price_was)===foer&&pris===(nu.price_amount==null?null:Number(nu.price_amount)))||offers.some(o=>o.was_verified&&o.was===foer&&o.price===pris)||$("e-tjekket").checked);
   return {rad:{status:st,category:$("e-kat").value,name:navn,brand:tom($("e-brand").value),why:tom($("e-why").value),image_url:tom($("e-billede").value),image_alt:tom($("e-alt").value),
-    offers,price_amount:pris,price_currency:$("e-valuta").value.trim().toUpperCase().slice(0,3)||"DKK",price_retailer:tom($("e-forh").value),price_url:link,price_verified:verified,price_checked_at:pris!=null?gemt:null,
+    offers,price_amount:pris,price_currency:$("e-valuta").value.trim().toUpperCase().slice(0,3)||"DKK",price_retailer:tom($("e-forh").value),price_url:link,price_verified:verified,price_checked_at:pris!=null?gemt:null,price_was:foer,discount_verified:rabatOk,
     source:$("e-ai").checked?"ai":"manual",affiliate:$("e-aff").checked,created_by:(nu&&nu.created_by)||mig}};
 }
 async function gem(st){

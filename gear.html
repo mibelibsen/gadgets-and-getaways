@@ -39,6 +39,11 @@
 <input class="felt" id="soeg" type="search" placeholder="Search by name, brand or what it does" autocomplete="off" maxlength="80">
 </form>
 <div class="filter" id="filter" role="group" aria-label="Filter by category"></div>
+<div class="gear-vaelg">
+<div><label for="sortering">Sort by</label>
+<select id="sortering"><option value="">Newest</option><option value="pris-op">Price: low to high</option><option value="pris-ned">Price: high to low</option><option value="rabat">Biggest discount</option></select></div>
+<div class="check"><input type="checkbox" id="kun-tilbud"><label for="kun-tilbud">Only discounted</label></div>
+</div>
 <p class="mindre" style="margin-top:20px"><span class="maerke annonce" style="margin-right:8px">Found by AI · checked by the editors</span> Suggestions are found with AI and reviewed by the editors before they are published. Prices can change. We may earn a commission on purchases.</p>
 </section>
 <section class="wrap moerk" style="padding-bottom:var(--section-y)">
@@ -63,13 +68,17 @@
 <script src="/produkter.js"></script>
 <script>
 (()=>{
-const {KAT,kort,hentUdgivne}=window.GP;
+const {KAT,kort,hentUdgivne,rabat}=window.GP;
 const liste=document.getElementById("liste"),tom=document.getElementById("tom"),fejl=document.getElementById("fejl"),antal=document.getElementById("antal");
 const felt=document.getElementById("soeg"),filter=document.getElementById("filter");
-let alle=[],kat="",q="";
+let alle=[],kat="",q="",sort="",tilbud=false;
 const params=new URLSearchParams(location.search);
 if(KAT[params.get("category")])kat=params.get("category");
 q=(params.get("q")||"").slice(0,80);felt.value=q;
+const SORT=["pris-op","pris-ned","rabat"];
+if(SORT.includes(params.get("sort")))sort=params.get("sort");
+tilbud=params.get("tilbud")==="1";
+document.getElementById("sortering").value=sort;document.getElementById("kun-tilbud").checked=tilbud;
 
 function knap(kode,tekst){
   const b=document.createElement("button");b.type="button";b.dataset.kat=kode;b.textContent=tekst;
@@ -82,13 +91,19 @@ filter.append(knap("","All"),...Object.entries(KAT).map(([k,n])=>knap(k,n)));
 function vis(){
   filter.querySelectorAll("button").forEach(b=>b.setAttribute("aria-pressed",b.dataset.kat===kat?"true":"false"));
   const ord=q.toLowerCase().split(/\s+/).filter(Boolean);
-  const rows=alle.filter(p=>(!kat||p.category===kat)&&ord.every(o=>[p.name,p.brand,p.why,KAT[p.category]].join(" ").toLowerCase().includes(o)));
+  let rows=alle.filter(p=>(!kat||p.category===kat)&&ord.every(o=>[p.name,p.brand,p.why,KAT[p.category]].join(" ").toLowerCase().includes(o))&&(!tilbud||rabat(p)));
+  // Uden pris eller rabat kommer til sidst. Ellers beholdes rækkefølgen «nyeste først».
+  const pris=p=>p.price_amount==null?null:Number(p.price_amount),pct=p=>{const r=rabat(p);return r?r.pct:null};
+  const sorter=(vaerdi,ned)=>rows=[...rows].sort((a,b)=>{const x=vaerdi(a),y=vaerdi(b);if(x==null&&y==null)return 0;if(x==null)return 1;if(y==null)return -1;return ned?y-x:x-y});
+  if(sort==="pris-op")sorter(pris,false);else if(sort==="pris-ned")sorter(pris,true);else if(sort==="rabat")sorter(pct,true);
   liste.replaceChildren(...rows.map(kort));
   tom.hidden=rows.length>0||!alle.length;
   antal.textContent=alle.length?rows.length+(rows.length===1?" product":" products"):"";
-  const u=new URLSearchParams();if(kat)u.set("category",kat);if(q)u.set("q",q);
+  const u=new URLSearchParams();if(kat)u.set("category",kat);if(q)u.set("q",q);if(sort)u.set("sort",sort);if(tilbud)u.set("tilbud","1");
   history.replaceState(null,"",location.pathname+(u.toString()?"?"+u:""));
 }
+document.getElementById("sortering").addEventListener("change",e=>{sort=e.target.value;vis()});
+document.getElementById("kun-tilbud").addEventListener("change",e=>{tilbud=e.target.checked;vis()});
 felt.addEventListener("input",()=>{q=felt.value.trim().slice(0,80);vis()});
 document.getElementById("soeg-form").addEventListener("submit",e=>e.preventDefault());
 hentUdgivne(200).then(rows=>{alle=Array.isArray(rows)?rows:[];vis();if(!alle.length){tom.textContent="New finds are on the way. Check back soon.";tom.hidden=false}}).catch(()=>{fejl.hidden=false});

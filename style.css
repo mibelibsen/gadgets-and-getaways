@@ -406,3 +406,14 @@ h2.mellem{font-size:clamp(44px,5vw,72px);line-height:.95}
 .produkt .sammenlign a{color:var(--brass);font-weight:600}
 .produkt .sammenlign summary{color:var(--midnight)}
 .gear-soeg .felt{flex:none;width:100%}
+
+/* Rabat og sortering */
+.produkt .billede{position:relative}
+.produkt .rabat{position:absolute;top:12px;left:12px;padding:6px 12px;border-radius:var(--radius-pill);background:var(--accent);color:var(--midnight);font-family:var(--font-mono);font-size:13px;font-weight:500;letter-spacing:.04em}
+.produkt .foer{margin-left:8px;font-size:14px;font-weight:400;color:var(--muted-light);text-decoration:line-through}
+.gear-vaelg{display:flex;flex-wrap:wrap;gap:16px 24px;align-items:end;margin-top:20px}
+.gear-vaelg label{display:block;font-weight:600;margin-bottom:6px}
+.gear-vaelg select{min-height:48px;padding:0 16px;border-radius:var(--radius-pill);border:1.5px solid var(--line);background:var(--deep);color:var(--ivory);font:inherit;font-size:16px}
+.gear-vaelg .check{display:flex;align-items:center;gap:10px;min-height:48px}
+.gear-vaelg .check input{width:22px;height:22px}
+.gear-vaelg .check label{margin:0;font-weight:500}
