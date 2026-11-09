@@ -343,6 +343,8 @@ ${SPROG_REGLER}`, 100000));
   svar.forEach((r) => { if (r.status === "fulfilled") { fund.push(...r.value.rows); kilder.push(...r.value.kilder); } else fejl.push(String((r.reason as Error)?.message ?? r.reason)); });
   if (!fund.length) throw new Error(fejl[0] ?? "Søgningen fandt ingen produkter. Prøv andre søgeord.");
   const brugteKilder = new Set<string>();
+  // Diagnose: hvor mange sider Google fandt, og hvor mange gange reserven blev prøvet og lykkedes.
+  const stat = { kilder: kilder.length, kildenavne: [...new Set(kilder.map((x) => x.title))].slice(0, 12), forsoeg: 0, reddet: 0, afvistFoerReserve: 0 };
 
   const { data: kendte } = await admin.from("gg_products").select("name");
   const kendt = new Set((kendte ?? []).map((x: { name: string }) => x.name.toLowerCase()));
@@ -368,8 +370,9 @@ ${SPROG_REGLER}`, 100000));
       if (kk.offer && !set.has(kk.offer.url)) { set.add(kk.offer.url); offers.push(kk.offer); } else if (kk.grund) sidsteGrund = kk.grund;
     }));
     if (!offers.length && rae.length) {
+      stat.forsoeg++; stat.afvistFoerReserve++;
       const red = await redning(rae[0], navn, kilder, brugteKilder);
-      if (red && !set.has(red.url)) { set.add(red.url); offers.push(red); }
+      if (red && !set.has(red.url)) { set.add(red.url); offers.push(red); stat.reddet++; }
     }
     if (!offers.length) { afvist.push({ navn, grund: sidsteGrund }); return; }
     markerAfvigende(offers);
@@ -388,7 +391,7 @@ ${SPROG_REGLER}`, 100000));
     });
   });
   const notat = fejl.length ? `${fejl.length} af ${k} søgninger blev afbrudt, så der kan være færre forslag end valgt (${fejl[0]}).` : null;
-  return { ok: true, model: MODEL, kategori: kat.navn, soeg, fundet: fund.length, produkter: produkter.slice(0, antal), afvist, notat };
+  return { ok: true, model: MODEL, kategori: kat.navn, soeg, fundet: fund.length, produkter: produkter.slice(0, antal), afvist, notat, diagnose: stat };
 }
 
 async function koerPriser(navn: string, maerke: string) {
