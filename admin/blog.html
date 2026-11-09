@@ -14,7 +14,7 @@
 <body>
 <header class="wrap head">
 <a class="logo" href="/">Gadgets <em>&amp;</em> Getaways<span class="dot">.</span></a>
-<nav class="nav" aria-label="Admin"><a href="/admin">Admin</a><a href="/admin/blog" aria-current="page">Blog og anmeldelser</a><a href="/blog">Se bloggen</a></nav>
+<nav class="nav" aria-label="Admin"><a href="/admin">Admin</a><a href="/admin/blog" aria-current="page">Blog og anmeldelser</a><a href="/admin/team">Team</a><a href="/">Se siden</a></nav>
 </header>
 <main>
 <div class="wrap ed">
@@ -142,7 +142,7 @@ const tom=v=>{v=String(v==null?"":v).trim();return v?v:null};
 async function start(){
   const {data:{session}}=await sb.auth.getSession();
   if(!session){vis("v-nej");return}
-  const {data:rolle}=await sb.rpc("mf_role");
+  const {data:rolle}=await sb.rpc("gg_role");
   if(rolle!=="topadmin"){vis("v-nej");return}
   mig=session.user.email;
   hentListe();

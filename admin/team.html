@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="da">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Team og adgang | Admin</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&amp;family=Inter:wght@400;500;600&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/style.css">
+</head>
+<body>
+<header class="wrap head">
+<a class="logo" href="/">Gadgets <em>&amp;</em> Getaways<span class="dot">.</span></a>
+<nav class="nav" aria-label="Admin"><a href="/admin">Admin</a><a href="/admin/blog">Blog og anmeldelser</a><a href="/admin/team" aria-current="page">Team</a><a href="/">Se siden</a></nav>
+</header>
+<main>
+<div class="wrap ed">
+
+<div id="v-nej" hidden>
+<h1>Log ind først</h1>
+<p style="color:var(--soft-dark)">Du skal være logget ind som administrator for at styre teamet.</p>
+<a class="knap" href="/admin">Gå til login</a>
+</div>
+
+<div id="v-team" hidden>
+<h1>Team og adgang</h1>
+<p style="color:var(--soft-dark);max-width:60ch">Alle her kan redigere teksterne på siden, skrive og udgive blog og anmeldelser, uploade billeder og styre teamet. Adgangen gælder kun Gadgets &amp; Getaways.</p>
+
+<form id="f-inviter" class="ed-form" novalidate style="margin:32px 0">
+<fieldset>
+<legend>Inviter en ny person</legend>
+<div><label for="i-mail">Mailadresse</label><input type="text" inputmode="email" autocomplete="off" id="i-mail" maxlength="200" placeholder="navn@firma.dk"></div>
+<div><button class="knap" type="submit" id="i-knap">Send invitation</button></div>
+<p class="hint">Personen får en mail med et link, hvor de vælger deres egen adgangskode. Linket virker én gang og udløber efter et døgn.</p>
+</fieldset>
+</form>
+
+<p class="ed-status" id="status" role="status" aria-live="polite"></p>
+<h2 style="font-size:36px;margin:32px 0 8px">Har adgang nu</h2>
+<div class="ed-liste" id="liste"></div>
+</div>
+
+</div>
+</main>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+<script>
+(()=>{
+const sb=supabase.createClient("https://oevcaujuziyvrqipbuep.supabase.co","sb_publishable_NaXSNQX_oygK5mKwymivww_42PbewBJ");
+const $=id=>document.getElementById(id);
+const lav=(tag,cls,tekst)=>{const e=document.createElement(tag);if(cls)e.className=cls;if(tekst!=null)e.textContent=tekst;return e};
+let mig=null;
+function status(tekst,type){const e=$("status");e.textContent=tekst;e.className="ed-status"+(type?" "+type:"")}
+
+async function start(){
+  const {data:{session}}=await sb.auth.getSession();
+  if(!session){$("v-nej").hidden=false;return}
+  const {data:rolle}=await sb.rpc("gg_role");
+  if(rolle!=="topadmin"){$("v-nej").hidden=false;return}
+  mig=session.user.email.toLowerCase();
+  $("v-team").hidden=false;
+  hentListe();
+}
+
+async function hentListe(){
+  const {data,error}=await sb.from("gg_admins").select("email,role,invited_by,created_at").order("created_at");
+  if(error){status("Kunne ikke hente listen: "+error.message,"fejl");return}
+  const l=$("liste");l.replaceChildren();
+  data.forEach(p=>{
+    const r=lav("div","ed-raekke");const t=lav("div");
+    t.append(lav("strong",null,p.email));
+    const sub=lav("div","sub");
+    sub.append(lav("b",null,"Administrator"));
+    sub.append(document.createTextNode(" · tilføjet "+new Date(p.created_at).toLocaleDateString("da-DK",{day:"numeric",month:"short",year:"numeric"})+(p.invited_by&&p.invited_by!=="system"?" af "+p.invited_by:"")+(p.email===mig?" · det er dig":"")));
+    t.append(sub);
+    const k=lav("div");k.style.cssText="display:flex;gap:8px;flex-wrap:wrap";
+    if(p.email!==mig){
+      const nyt=lav("button","knap-ud knap-lille","Send nyt link");nyt.type="button";nyt.addEventListener("click",()=>inviter(p.email,true));
+      const fjern=lav("button","knap-ud knap-lille","Fjern adgang");fjern.type="button";fjern.addEventListener("click",()=>fjernAdgang(p.email));
+      k.append(nyt,fjern);
+    }
+    r.append(t,k);l.append(r);
+  });
+}
+
+async function inviter(mail,igen){
+  status(igen?"Sender nyt link …":"Sender invitation …");
+  $("i-knap").disabled=true;
+  const {data,error}=await sb.functions.invoke("gg-nulstil",{body:{action:"invite",email:mail}});
+  $("i-knap").disabled=false;
+  if(error){
+    let tekst="Det mislykkedes. Prøv igen om lidt.";
+    try{const j=await error.context.json();if(j&&j.fejl)tekst=j.fejl}catch(e){}
+    status(tekst,"fejl");hentListe();return;
+  }
+  status(data&&data.besked?data.besked:"Sendt.","ok");
+  if(!igen)$("i-mail").value="";
+  hentListe();
+}
+
+$("f-inviter").addEventListener("submit",e=>{
+  e.preventDefault();
+  const m=$("i-mail").value.trim().toLowerCase();
+  if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(m)){status("Skriv en gyldig mailadresse.","fejl");$("i-mail").focus();return}
+  inviter(m,false);
+});
+
+async function fjernAdgang(mail){
+  if(mail===mig){status("Du kan ikke fjerne dig selv.","fejl");return}
+  if(!confirm("Fjern adgangen for "+mail+"? Personen kan ikke længere redigere eller skrive på siden."))return;
+  const {error}=await sb.from("gg_admins").delete().eq("email",mail);
+  if(error){status(/mindst én/.test(error.message)?"Der skal være mindst én administrator.":"Kunne ikke fjerne adgangen: "+error.message,"fejl");return}
+  status(mail+" har ikke længere adgang.","ok");hentListe();
+}
+start();
+})();
+</script>
+</body>
+</html>

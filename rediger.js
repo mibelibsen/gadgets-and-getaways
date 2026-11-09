@@ -43,7 +43,7 @@ s.onload=start;document.head.append(s);
 async function start(){
   const sb=supabase.createClient(URL_,KEY);
   const {data:{session}}=await sb.auth.getSession();if(!session)return;
-  const {data:rolle}=await sb.rpc("mf_role");if(rolle!=="topadmin")return;
+  const {data:rolle}=await sb.rpc("gg_role");if(rolle!=="topadmin")return;
   const css=document.createElement("style");css.textContent=`
 .red-bar{position:fixed;right:16px;bottom:calc(16px + env(safe-area-inset-bottom,0px));z-index:50;display:flex;flex-wrap:wrap;gap:6px;align-items:center;justify-content:flex-end;max-width:calc(100% - 32px);padding:8px;border-radius:28px;background:#070C16;border:1px solid #263043;box-shadow:0 6px 24px rgba(0,0,0,.35)}
 .red-bar button{min-height:40px;padding:0 16px;border:0;border-radius:999px;font:600 14px/1 Inter,system-ui,sans-serif;cursor:pointer;background:#263043;color:#F4F1EA}

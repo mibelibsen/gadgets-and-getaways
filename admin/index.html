@@ -41,12 +41,13 @@
 <p id="hvem" style="color:var(--soft-dark)"></p>
 <p style="color:var(--soft-dark)">Gå til en side på sitet. Nederst til højre står knappen «Rediger siden». Klik i en tekst, ret den, og tryk «Gem».</p>
 <a class="knap" href="/admin/blog">Skriv blog og anmeldelser</a>
+<a class="knap-ud" href="/admin/team">Team og adgang</a>
 <a class="knap-ud" href="/">Gå til forsiden</a>
 <button class="knap-ud" type="button" id="logud">Log ud</button>
 </div>
 <div class="login" id="v-ingen" hidden>
 <h1 style="font-size:56px;line-height:1">Ingen adgang</h1>
-<p style="color:var(--soft-dark)">Kontoen har ikke rollen topadmin og kan derfor ikke redigere sitet.</p>
+<p style="color:var(--soft-dark)">Kontoen står ikke på adgangslisten til Gadgets &amp; Getaways. Bed en administrator om at invitere dig under «Team».</p>
 <button class="knap-ud" type="button" id="logud2">Log ud</button>
 </div>
 </div>
@@ -66,10 +67,10 @@ let kraeverKode=laesMaerke(),linkFejl=null;
 let linkBrugt=false;
 async function brugLink(){
   const th=hashP.get("token_hash"),type=hashP.get("type");
-  if(linkBrugt||!th||type!=="recovery")return;
+  if(linkBrugt||!th||(type!=="recovery"&&type!=="invite"))return;
   linkBrugt=true;
   history.replaceState(null,"",location.pathname);
-  const {error}=await sb.auth.verifyOtp({token_hash:th,type:"recovery"});
+  const {error}=await sb.auth.verifyOtp({token_hash:th,type});
   if(error)linkFejl="Linket er udløbet eller allerede brugt. Skriv din mail og tryk «Glemt adgangskode» for at få et nyt.";
   else{kraeverKode=true;saetMaerke(true)}
 }
@@ -79,7 +80,7 @@ async function tjek(){
   const {data:{session}}=await sb.auth.getSession();
   if(!session){vis("v-login");return}
   if(kraeverKode){vis("v-kode");return}
-  const {data:rolle}=await sb.rpc("mf_role");
+  const {data:rolle}=await sb.rpc("gg_role");
   if(rolle==="topadmin"){$("hvem").textContent=session.user.email;vis("v-ok")}else vis("v-ingen");
 }
 $("f-login").addEventListener("submit",async e=>{

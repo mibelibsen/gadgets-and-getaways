@@ -8,7 +8,7 @@ Skriv kode, kommentarer og commit-beskeder på **dansk**. Teksten, som besøgend
 - Repo: `mibelibsen/gadgets-and-getaways`. Vercel-team: `mibelibsens-projects` (team_mQu3h9xnYaeqpVu0FrqCK0QV).
 - Domæne: `gadgetsandgetaways.com`, købt hos Vercel 9. november 2026, udløber 9. november 2027, fornyes automatisk. DNS hos Vercel.
 - Supabase: samme projekt som mandlige.dk (`Store51`, ref `oevcaujuziyvrqipbuep`). Alle tabeller her har præfikset `gg_`. Rør ikke tabeller uden præfikset, de hører til kassen og mandlige.dk.
-- Login: samme konti som mandlige.dk (rpc `mf_role`, rollen `topadmin`). Skjulte elementer skjules med `[hidden]{display:none!important}` i `style.css`. Uden den regel står et element med `display` i stilarket synligt, selv om det er skjult.
+- Adgang: egen adgangsliste `gg_admins` (rpc `gg_role()`, rollen `topadmin`), adskilt fra `mf_admins` på mandlige.dk. Brugerkonti ligger i Supabase Auth, som deles med mandlige.dk, men adgang til denne side gives kun gennem `gg_admins`. Alle administratorer kan alt: redigere tekster, skrive blog, uploade billeder og styre teamet. Skjulte elementer skjules med `[hidden]{display:none!important}` i `style.css`. Uden den regel står et element med `display` i stilarket synligt, selv om det er skjult.
 - Hemmeligheder (Gemini-nøgle, affiliate-nøgler) hører kun til som secrets i Supabase Edge Functions. Aldrig i koden. Den publishable key i `rediger.js` og `admin/index.html` er offentlig og må stå.
 
 ## Filer
@@ -16,7 +16,8 @@ Skriv kode, kommentarer og commit-beskeder på **dansk**. Teksten, som besøgend
 - `style.css`: designsystemet (tokens i `:root`). Hardcode ikke farver, hvor der findes en token.
 - `app.js`: billedpladsholdere, nyhedsbrevsformular, indlæser `rediger.js`.
 - `rediger.js`: «Rediger siden» for topadmin. Tekster gemmes i `gg_texts`. Virker på `h1`, `h2`, `h3`, `p`, `label`, `legend`, `dt`, `dd`, `li` inde i `main`. Sider med `data-uden-rediger` på `<html>` og `/admin/` springes over.
-- `admin/index.html`: login, «Glemt adgangskode» og valg af ny adgangskode. Efter login står knappen «Rediger siden» nederst til højre på hver side. Nulstillingen går gennem Edge Function `gg-nulstil` (kopi i `supabase/functions/gg-nulstil/`), som kun sender til topadmins og kun linker tilbage til dette site.
+- `admin/index.html`: login, «Glemt adgangskode» og valg af ny adgangskode. Efter login står knappen «Rediger siden» nederst til højre på hver side. Nulstilling og invitation går gennem Edge Function `gg-nulstil` v2 (kopi i `supabase/functions/gg-nulstil/`), som kun sender til personer på `gg_admins` og kun linker tilbage til dette site. Invitation kræver login som administrator.
+- `admin/team.html`: brugerstyring. Inviter med mail (Edge Function `gg-nulstil`, action `invite`), send nyt link og fjern adgang. Den sidste administrator kan ikke fjernes (trigger i databasen).
 - `admin/blog.html`: editor til blog og anmeldelser (kun topadmin). Liste, nyt indlæg, rediger, upload af billeder, udgiv, tag af siden, slet.
 - `blog.html`: bloglisten på `/blog` med filter. `post.html`: ét indlæg, vist på `/blog/<adresse>` (rewrite i `vercel.json`). `?preview=1` viser en kladde for topadmin.
 - `blog.js`: henter indlæg, bygger kort og brødtekst sikkert med `textContent`. Forsidens «From the editors» viser de tre nyeste udgivne indlæg og beholder eksemplerne, til der findes et.
@@ -67,3 +68,8 @@ Gemini-produktforslag, godkendelsesflow, prissammenligning, affiliate-partnere o
 - Nye tabeller skal have RLS. Offentlig skrivning går gennem en Edge Function.
 - Skriv commit-beskeden gennem en fil (`git commit -F`), ikke `-m`.
 - Hold grennavne korte, så forhåndsvisningens adresse kan skrives uden at slå den op.
+
+## Arbejde med sitet som redaktør (journalisten og hans Claude)
+- Dagligt arbejde sker i admin: tekster rettes direkte på siden med «Rediger siden», blog og anmeldelser skrives under /admin/blog, billeder uploades dér.
+- Ændringer i selve sitet (kode, design, nye sider) laves i dette repo. Arbejd på en kort gren (`claude/…`), og push den. Vercel bygger en forhåndsvisning af grenen. Et push til `main` er en udrulning til gadgetsandgetaways.com.
+- Rør ikke Supabase-tabeller uden præfikset `gg_`, og ret ikke andre funktioner end `gg-nulstil`. Projektet deles med kassen (Store51) og mandlige.dk.
