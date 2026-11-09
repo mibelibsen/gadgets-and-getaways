@@ -40,7 +40,7 @@
 <h1 style="font-size:56px;line-height:1">Du er logget ind</h1>
 <p id="hvem" style="color:var(--soft-dark)"></p>
 <p style="color:var(--soft-dark)">Gå til en side på sitet. Nederst til højre står knappen «Rediger siden». Klik i en tekst, ret den, og tryk «Gem».</p>
-<a class="knap" href="/">Gå til forsiden</a>
+<a class="knap-ud" href="/">Gå til forsiden</a>
 <button class="knap-ud" type="button" id="logud">Log ud</button>
 </div>
 <div class="login" id="v-ingen" hidden>
@@ -58,7 +58,10 @@ const $=id=>document.getElementById(id);
 const vis=id=>["v-login","v-kode","v-ok","v-ingen"].forEach(x=>$(x).hidden=x!==id);
 // Link fra mailen: #token_hash=…&type=recovery. Linket bruges én gang og fjernes straks fra adressen.
 const hashP=new URLSearchParams(location.hash.slice(1));
-let kraeverKode=false,linkFejl=null;
+const KODE_MAERKE="gg-mangler-kode";
+const laesMaerke=()=>{try{return sessionStorage.getItem(KODE_MAERKE)==="1"}catch(e){return false}};
+const saetMaerke=on=>{try{on?sessionStorage.setItem(KODE_MAERKE,"1"):sessionStorage.removeItem(KODE_MAERKE)}catch(e){}};
+let kraeverKode=laesMaerke(),linkFejl=null;
 let linkBrugt=false;
 async function brugLink(){
   const th=hashP.get("token_hash"),type=hashP.get("type");
@@ -67,7 +70,7 @@ async function brugLink(){
   history.replaceState(null,"",location.pathname);
   const {error}=await sb.auth.verifyOtp({token_hash:th,type:"recovery"});
   if(error)linkFejl="Linket er udløbet eller allerede brugt. Skriv din mail og tryk «Glemt adgangskode» for at få et nyt.";
-  else kraeverKode=true;
+  else{kraeverKode=true;saetMaerke(true)}
 }
 async function tjek(){
   await brugLink();
@@ -99,9 +102,9 @@ $("f-kode").addEventListener("submit",async e=>{
   b.textContent="Gemmer …";
   const {error}=await sb.auth.updateUser({password:p});
   if(error){b.textContent="Adgangskoden kunne ikke gemmes: "+error.message;return}
-  kraeverKode=false;b.textContent="";tjek();
+  kraeverKode=false;saetMaerke(false);b.textContent="";tjek();
 });
-const logud=async()=>{await sb.auth.signOut();location.reload()};
+const logud=async()=>{saetMaerke(false);await sb.auth.signOut();location.reload()};
 $("logud").addEventListener("click",logud);$("logud2").addEventListener("click",logud);
 tjek();
 })();
