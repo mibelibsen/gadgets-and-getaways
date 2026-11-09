@@ -33,7 +33,9 @@ Kilde: designpakken fra Claude Design (Main, Anmeldelse, Designsystem, Annoncer)
 Tekst i [klammer] er pladsholdere og bliver stående, til Michael leverer indhold. Mangler: e-mail, CVR-nr., rigtige produkter, priser og forhandlere, hotel- og flypartnere, annoncepriser, privatlivspolitik, cookies, forfatter.
 
 ## Billeder
-Lægges i `/images/` med disse navne. Står pladsholderen med filnavn i HTML, erstatter `app.js` den automatisk, når filen findes.
+Alle 19 billeder er lagt ind 9. november 2026. De er AI-genererede med Claude Designs prompter. Forfatterportrættet viser en opdigtet person. Skal der stå et rigtigt navn og foto, skal begge udskiftes.
+
+Nye billeder lægges i `/images/` med disse navne. Står pladsholderen med filnavn i HTML, erstatter `app.js` den automatisk, når filen findes.
 
 | Fil | Mål (px) | Bruges |
 | --- | --- | --- |
