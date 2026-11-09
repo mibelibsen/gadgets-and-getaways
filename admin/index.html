@@ -25,7 +25,15 @@
 <button class="knap" type="submit">Log ind</button>
 <button class="knap-ud" type="button" id="glemt">Glemt adgangskode</button>
 <p class="status" id="login-besked" role="status" aria-live="polite"></p>
-<p style="margin:0;font-size:14px;color:var(--muted-dark)">Samme konto som på mandlige.dk. Har du glemt adgangskoden, eller har du aldrig valgt én, så skriv din mail og tryk «Glemt adgangskode». Mailen indeholder et link, hvor du vælger en ny adgangskode. Linket åbner mandlige.dk. Kom derefter tilbage hertil og log ind med din mail og den nye adgangskode.</p>
+<p style="margin:0;font-size:14px;color:var(--muted-dark)">Har du glemt adgangskoden, eller har du aldrig valgt én, så skriv din mail og tryk «Glemt adgangskode». Du får en mail med et link, hvor du vælger en ny adgangskode her på siden.</p>
+</form>
+</div>
+<div class="login" id="v-kode" hidden>
+<h1 style="font-size:56px;line-height:1">Vælg adgangskode</h1>
+<form id="f-kode" novalidate style="display:flex;flex-direction:column;gap:16px">
+<div><label for="k-ny">Ny adgangskode (mindst 8 tegn)</label><input class="felt" id="k-ny" type="password" minlength="8" required autocomplete="new-password"></div>
+<button class="knap" type="submit">Gem adgangskode</button>
+<p class="status" id="kode-besked" role="status" aria-live="polite"></p>
 </form>
 </div>
 <div class="login" id="v-ok" hidden>
@@ -47,10 +55,26 @@
 (()=>{
 const sb=supabase.createClient("https://oevcaujuziyvrqipbuep.supabase.co","sb_publishable_NaXSNQX_oygK5mKwymivww_42PbewBJ");
 const $=id=>document.getElementById(id);
-const vis=id=>["v-login","v-ok","v-ingen"].forEach(x=>$(x).hidden=x!==id);
+const vis=id=>["v-login","v-kode","v-ok","v-ingen"].forEach(x=>$(x).hidden=x!==id);
+// Link fra mailen: #token_hash=…&type=recovery. Linket bruges én gang og fjernes straks fra adressen.
+const hashP=new URLSearchParams(location.hash.slice(1));
+let kraeverKode=false,linkFejl=null;
+let linkBrugt=false;
+async function brugLink(){
+  const th=hashP.get("token_hash"),type=hashP.get("type");
+  if(linkBrugt||!th||type!=="recovery")return;
+  linkBrugt=true;
+  history.replaceState(null,"",location.pathname);
+  const {error}=await sb.auth.verifyOtp({token_hash:th,type:"recovery"});
+  if(error)linkFejl="Linket er udløbet eller allerede brugt. Skriv din mail og tryk «Glemt adgangskode» for at få et nyt.";
+  else kraeverKode=true;
+}
 async function tjek(){
+  await brugLink();
+  if(linkFejl){vis("v-login");$("login-besked").textContent=linkFejl;linkFejl=null;return}
   const {data:{session}}=await sb.auth.getSession();
   if(!session){vis("v-login");return}
+  if(kraeverKode){vis("v-kode");return}
   const {data:rolle}=await sb.rpc("mf_role");
   if(rolle==="topadmin"){$("hvem").textContent=session.user.email;vis("v-ok")}else vis("v-ingen");
 }
@@ -65,8 +89,17 @@ $("glemt").addEventListener("click",async()=>{
   const b=$("login-besked"),m=$("l-mail").value.trim();
   if(!m||!$("l-mail").checkValidity()){b.textContent="Skriv din mail i feltet først.";$("l-mail").focus();return}
   b.textContent="Sender …";
-  const {error}=await sb.functions.invoke("mf-invite",{body:{action:"link",email:m}});
+  const {error}=await sb.functions.invoke("gg-nulstil",{body:{email:m}});
   b.textContent=error?"Mailen kunne ikke sendes. Prøv igen om lidt.":"Hvis mailen har adgang, får du nu et link til at vælge adgangskode. Tjek også spam. Der kan gå to minutter, før du kan bede om et nyt link.";
+});
+$("f-kode").addEventListener("submit",async e=>{
+  e.preventDefault();
+  const b=$("kode-besked"),p=$("k-ny").value;
+  if(p.length<8){b.textContent="Adgangskoden skal være mindst 8 tegn.";return}
+  b.textContent="Gemmer …";
+  const {error}=await sb.auth.updateUser({password:p});
+  if(error){b.textContent="Adgangskoden kunne ikke gemmes: "+error.message;return}
+  kraeverKode=false;b.textContent="";tjek();
 });
 const logud=async()=>{await sb.auth.signOut();location.reload()};
 $("logud").addEventListener("click",logud);$("logud2").addEventListener("click",logud);
