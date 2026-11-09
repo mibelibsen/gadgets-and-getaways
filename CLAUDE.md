@@ -8,7 +8,7 @@ Skriv kode, kommentarer og commit-beskeder på **dansk**. Teksten, som besøgend
 - Repo: `mibelibsen/gadgets-and-getaways`. Vercel-team: `mibelibsens-projects` (team_mQu3h9xnYaeqpVu0FrqCK0QV).
 - Domæne: `gadgetsandgetaways.com`, købt hos Vercel 9. november 2026, udløber 9. november 2027, fornyes automatisk. DNS hos Vercel.
 - Supabase: samme projekt som mandlige.dk (`Store51`, ref `oevcaujuziyvrqipbuep`). Alle tabeller her har præfikset `gg_`. Rør ikke tabeller uden præfikset, de hører til kassen og mandlige.dk.
-- Login: samme konti som mandlige.dk (rpc `mf_role`, rollen `topadmin`).
+- Login: samme konti som mandlige.dk (rpc `mf_role`, rollen `topadmin`). Skjulte elementer skjules med `[hidden]{display:none!important}` i `style.css`. Uden den regel står et element med `display` i stilarket synligt, selv om det er skjult.
 - Hemmeligheder (Gemini-nøgle, affiliate-nøgler) hører kun til som secrets i Supabase Edge Functions. Aldrig i koden. Den publishable key i `rediger.js` og `admin/index.html` er offentlig og må stå.
 
 ## Filer
@@ -16,7 +16,10 @@ Skriv kode, kommentarer og commit-beskeder på **dansk**. Teksten, som besøgend
 - `style.css`: designsystemet (tokens i `:root`). Hardcode ikke farver, hvor der findes en token.
 - `app.js`: billedpladsholdere, nyhedsbrevsformular, indlæser `rediger.js`.
 - `rediger.js`: «Rediger siden» for topadmin. Tekster gemmes i `gg_texts`. Virker på `h1`, `h2`, `h3`, `p`, `label`, `legend`, `dt`, `dd`, `li` inde i `main`. Sider med `data-uden-rediger` på `<html>` og `/admin/` springes over.
-- `admin/index.html`: login. Efter login står knappen «Rediger siden» nederst til højre på hver side.
+- `admin/index.html`: login, «Glemt adgangskode» og valg af ny adgangskode. Efter login står knappen «Rediger siden» nederst til højre på hver side. Nulstillingen går gennem Edge Function `gg-nulstil` (kopi i `supabase/functions/gg-nulstil/`), som kun sender til topadmins og kun linker tilbage til dette site.
+- `admin/blog.html`: editor til blog og anmeldelser (kun topadmin). Liste, nyt indlæg, rediger, upload af billeder, udgiv, tag af siden, slet.
+- `blog.html`: bloglisten på `/blog` med filter. `post.html`: ét indlæg, vist på `/blog/<adresse>` (rewrite i `vercel.json`). `?preview=1` viser en kladde for topadmin.
+- `blog.js`: henter indlæg, bygger kort og brødtekst sikkert med `textContent`. Forsidens «From the editors» viser de tre nyeste udgivne indlæg og beholder eksemplerne, til der findes et.
 
 ## Design
 Kilde: designpakken fra Claude Design (Main, Anmeldelse, Designsystem, Annoncer).
@@ -49,8 +52,15 @@ Nye billeder lægges i `/images/` med disse navne. Står pladsholderen med filna
 | forfatter.jpg | 200 × 200 | Forfatterportræt |
 | og-image.jpg | 1200 × 630 | Deling på sociale medier |
 
+## Blog og anmeldelser i databasen
+- `gg_posts`: slug, type (review/guide/news), status (draft/published), titel, manchet, brødtekst, billeder, forfatter, karakter, dom, plus/minus, specifikationer, «testet på», produkt og købslink, affiliate. Besøgende kan kun læse udgivne indlæg. Kun topadmin kan skrive (RLS, `mf_role()`). Udgivelsesdato sættes automatisk, når status bliver published.
+- Billeder ligger i lageret `gg-images` (offentligt, højst 5 MB, jpg/png/webp, kun topadmin må uploade).
+- Brødtekst er en lille markdown: `## overskrift`, `> citat`, `- liste`, `![tekst](adresse)`, `**fed**`, `*kursiv*`, `[tekst](adresse)`. Links og billeder skal være https eller starte med `/`.
+- Siderne bygges i browseren. Google kan læse dem, men indlæg kommer ikke automatisk i `sitemap.xml`.
+- `anmeldelse.html` er stadig designets skabelon (noindex) og bruges ikke af bloggen.
+
 ## Ikke bygget endnu
-Gemini-produktforslag, godkendelsesflow, prissammenligning, affiliate-partnere, blog i database og annoncesystem. Sektionerne står med statiske eksempeldata, så de kan kobles på senere. Nyhedsbrevsformularen gemmer ingenting og siger det til besøgende.
+Gemini-produktforslag, godkendelsesflow, prissammenligning, affiliate-partnere og annoncesystem. Sektionerne står med statiske eksempeldata, så de kan kobles på senere. Nyhedsbrevsformularen gemmer ingenting og siger det til besøgende.
 
 ## Regler for arbejdet
 - Byg DOM med `textContent`, ikke `innerHTML` med brugerdata.

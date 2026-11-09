@@ -1,0 +1,205 @@
+<!doctype html>
+<html lang="en" data-uden-rediger>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Gadgets &amp; Getaways</title>
+<meta name="description" content="Reviews, guides and new gadgets for frequent flyers.">
+<meta name="theme-color" content="#0B1220">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&amp;family=Inter:wght@400;500;600&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/style.css">
+</head>
+<body style="background:var(--midnight)">
+<a class="skip" href="#main">Skip to content</a>
+<header class="wrap head">
+<a class="logo" href="/">Gadgets <em>&amp;</em> Getaways<span class="dot">.</span></a>
+<nav class="nav" aria-label="Main menu">
+<a href="/#gadgets">Gadgets</a>
+<a href="/#kufferter">Luggage</a>
+<a href="/#hoteller">Hotels</a>
+<a href="/#fly">Flights</a>
+<a href="/blog" aria-current="page">Reviews</a>
+<a class="knap" href="/#nyhedsbrev">Get Gate Notes</a>
+</nav>
+</header>
+
+<main id="main">
+<div class="lys">
+<p class="wrap" id="indlaeser" style="margin:0;padding-top:72px;padding-bottom:72px;color:var(--muted-light)" role="status">Loading …</p>
+
+<div id="indhold" hidden>
+<div class="wrap" id="preview" hidden style="padding-top:16px"><p class="fejl-besked" style="margin:0"><b>Preview.</b> This is how the post looks. <span id="preview-status"></span></p></div>
+<section class="wrap artikel-top">
+<nav class="krumme" aria-label="Breadcrumb" id="krumme"></nav>
+<span class="maerke fyldt" id="art" style="align-self:flex-start"></span>
+<h1 id="titel"></h1>
+<p class="manchet" id="manchet" hidden></p>
+<div class="forfatter" id="forfatter"></div>
+</section>
+
+<div class="wrap" id="topbillede-wrap" hidden>
+<div class="billede topbillede" id="topbillede"></div>
+</div>
+
+<section class="wrap artikel-net">
+<article class="artikel" id="artikel"></article>
+<aside class="sidebar" id="sidebar" aria-label="Sidebar" hidden></aside>
+</section>
+</div>
+
+<div id="ikke-fundet" class="wrap" hidden style="padding-top:72px;padding-bottom:96px">
+<h1 style="font-size:clamp(48px,6vw,88px);line-height:.98">Post not found</h1>
+<p style="font-size:18px;color:var(--body-light);max-width:50ch">This post does not exist, or it has not been published yet.</p>
+<p><a class="knap-moerk" href="/blog">See all posts</a></p>
+</div>
+</div>
+
+<section class="laes-videre" id="relateret" hidden style="background:var(--midnight);color:var(--ivory)">
+<div class="wrap">
+<h2>Read <em>on</em></h2>
+<div class="indlaeg-net" id="relateret-liste"></div>
+</div>
+</section>
+</main>
+
+<footer class="fod">
+<div class="wrap" style="padding-top:32px;padding-bottom:32px">
+<div class="fod-bund" style="border:0;padding:0">
+<span>Gadgets &amp; Getaways<span class="acc">.</span> · gadgetsandgetaways.com · [EMAIL] · CVR [CVR NO.]</span>
+<nav aria-label="Legal"><a href="/about.html">About</a><a href="/advertise.html">Advertise with us</a><a href="/about.html#privacy">Privacy policy</a><a href="/about.html#cookies">Cookies</a></nav>
+</div>
+</div>
+</footer>
+
+<script src="/app.js"></script>
+<script src="/blog.js"></script>
+<script>
+(async()=>{
+const {el,hent,dato,laesetid,billede,sikkerUrl,brodtekst,kort,TYPER,URL_,KEY}=window.GG;
+const $=id=>document.getElementById(id);
+const slug=(location.pathname.match(/^\/blog\/([^\/]+)\/?$/)||[])[1];
+const forhaand=new URLSearchParams(location.search).get("preview")==="1";
+
+async function hentIndlaeg(){
+  const s=decodeURIComponent(slug||"");
+  if(!s)return null;
+  if(forhaand){
+    // Forhåndsvisning af kladder: kun for topadmin, som er logget ind på /admin.
+    await new Promise((ok,fejl)=>{const sc=document.createElement("script");sc.src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js";sc.onload=ok;sc.onerror=fejl;document.head.append(sc)});
+    const sb=supabase.createClient(URL_,KEY);
+    const {data}=await sb.from("gg_posts").select("*").eq("slug",s).maybeSingle();
+    if(data)$("preview").hidden=false;
+    return data;
+  }
+  const rows=await hent("gg_posts?select=*&status=eq.published&slug=eq."+encodeURIComponent(s)+"&limit=1");
+  return rows[0]||null;
+}
+
+function ikkeFundet(){
+  $("indlaeser").hidden=true;$("ikke-fundet").hidden=false;$("indhold").hidden=false;
+  $("indhold").querySelectorAll(".artikel-top,#topbillede-wrap,.artikel-net,#preview").forEach(e=>e.hidden=true);
+  document.title="Post not found | Gadgets & Getaways";
+  const m=document.createElement("meta");m.name="robots";m.content="noindex";document.head.append(m);
+}
+function meta(navn,val,prop){
+  let m=document.querySelector(prop?`meta[property="${navn}"]`:`meta[name="${navn}"]`);
+  if(!m){m=document.createElement("meta");m.setAttribute(prop?"property":"name",navn);document.head.append(m)}
+  m.content=val;
+}
+
+let p;
+try{p=await hentIndlaeg()}catch(e){p=null}
+if(!p){ikkeFundet();return}
+
+// Hoved
+const adresse="https://gadgetsandgetaways.com/blog/"+encodeURIComponent(p.slug);
+document.title=p.title+" | Gadgets & Getaways";
+const beskrivelse=p.lede||p.title;
+meta("description",beskrivelse);meta("og:title",p.title,true);meta("og:description",beskrivelse,true);meta("og:type","article",true);meta("og:url",adresse,true);
+const heroSrc=sikkerUrl(p.image_url);
+meta("og:image",heroSrc?(heroSrc.startsWith("/")?"https://gadgetsandgetaways.com"+heroSrc:heroSrc):"https://gadgetsandgetaways.com/images/og-image.jpg",true);
+const can=document.createElement("link");can.rel="canonical";can.href=adresse;document.head.append(can);
+if(p.status!=="published"){meta("robots","noindex")}
+else{
+  const ld=document.createElement("script");ld.type="application/ld+json";
+  ld.textContent=JSON.stringify({"@context":"https://schema.org","@type":"Article",headline:p.title,description:beskrivelse,datePublished:p.published_at,dateModified:p.updated_at,author:p.author_name?{"@type":"Person",name:p.author_name}:undefined,image:heroSrc||undefined,mainEntityOfPage:adresse});
+  document.head.append(ld);
+}
+
+const kk=$("krumme");
+const a1=el("a",null,"Home");a1.href="/";const a2=el("a",null,"Reviews");a2.href="/blog";
+kk.append(a1," / ",a2," / "+(p.category||TYPER[p.kind]||""));
+$("art").textContent=TYPER[p.kind]||p.kind;
+$("titel").textContent=p.title;
+if(p.lede){$("manchet").textContent=p.lede;$("manchet").hidden=false}
+
+// Forfatterlinje
+const f=$("forfatter");
+if(p.author_name){
+  const person=el("span","person");const por=el("span","portraet");
+  const pi=billede(p.author_image_url,"",44,44);if(pi)por.append(pi);
+  person.append(por,el("b",null,p.author_name));f.append(person);
+}
+if(p.published_at)f.append(el("span",null,dato(p.published_at)));
+f.append(el("span",null,(p.read_minutes||laesetid(p.body))+" min read"));
+if(p.affiliate)f.append(el("span",null,"Contains affiliate links"));
+
+// Topbillede
+const ti=billede(p.image_url,p.image_alt,2100,900);
+if(ti){$("topbillede").append(ti);$("topbillede-wrap").hidden=false}
+
+// Artikel
+const art=$("artikel");
+if(p.kind==="review"&&(p.rating!=null||p.verdict)){
+  const dom=el("div","dom");
+  const top=el("div","dom-top");const lab=el("span","mono","The verdict");lab.style.cssText="font-size:12px;color:var(--accent)";top.append(lab);
+  if(p.rating!=null){const k=el("span","dom-karakter",String(Number(p.rating)));k.append(el("small",null,"/10"));top.append(k)}
+  dom.append(top);
+  if(p.verdict)dom.append(el("p","dom-tekst",p.verdict));
+  const net=el("div","dom-net");
+  const kol=(titel,liste,tegn)=>{if(!liste||!liste.length)return;const d=el("div");const h=el("span","mono",titel);h.style.cssText="font-size:11px;color:var(--muted-dark)";d.append(h);liste.forEach(t=>d.append(el("span",null,tegn+" "+t)));net.append(d)};
+  kol("Pros",p.pros,"+");kol("Cons",p.cons,"–");
+  if(net.children.length)dom.append(net);
+  art.append(dom);
+}
+art.append(brodtekst(p.body,p.affiliate));
+
+const specs=Array.isArray(p.specs)?p.specs.filter(s=>s&&s.k&&s.v):[];
+if(specs.length){
+  art.append(el("h2",null,"Specifications"));
+  const dl=el("dl","spec");specs.forEach(s=>{const d=el("div");d.append(el("dt",null,String(s.k)),el("dd",null,String(s.v)));dl.append(d)});art.append(dl);
+}
+const kobUrl=sikkerUrl(p.buy_url);
+if(p.product_name&&kobUrl){
+  const box=el("div","koeb");const info=el("div","info");
+  const pb=el("div","billede");const pbi=billede(p.product_image_url,"",72,72);if(pbi)pb.append(pbi);info.append(pb);
+  const t=el("span");t.append(el("strong",null,p.product_name));
+  const linje=[p.product_price,p.product_retailer?"at "+p.product_retailer:""].filter(Boolean).join(" ");
+  if(linje)t.append(el("span",null,linje));info.append(t);
+  const a=el("a","knap-moerk knap-lille","See current price");a.href=kobUrl;a.target="_blank";a.rel="noopener nofollow sponsored";
+  box.append(info,a);art.append(box);
+}
+if(p.affiliate)art.append(el("p","mindre","We may earn a commission if you buy through our links. It does not affect our verdict."));
+
+// Sidebar: testet på
+const ruter=Array.isArray(p.tested_on)?p.tested_on.filter(r=>r&&r.route):[];
+if(ruter.length){
+  const sb=$("sidebar");const box=el("div","rammeboks");box.append(el("span","over mono","Tested on"));
+  ruter.forEach(r=>{const l=el("span","rute-linje");l.append(el("span",null,String(r.route)),el("span",null,r.date?String(r.date):""));box.append(l)});
+  sb.append(box);sb.hidden=false;
+}
+
+$("indlaeser").hidden=true;$("indhold").hidden=false;
+
+// Læs videre
+try{
+  const rows=await hent("gg_posts?select=slug,kind,title,image_url,image_alt,author_name,published_at,read_minutes&status=eq.published&slug=neq."+encodeURIComponent(p.slug)+"&order=published_at.desc&limit=3");
+  if(rows.length){$("relateret-liste").replaceChildren(...rows.map(kort));$("relateret").hidden=false}
+}catch(e){}
+})();
+</script>
+</body>
+</html>

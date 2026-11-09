@@ -1,0 +1,285 @@
+<!doctype html>
+<html lang="da">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Blog og anmeldelser | Admin</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&amp;family=Inter:wght@400;500;600&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/style.css">
+</head>
+<body>
+<header class="wrap head">
+<a class="logo" href="/">Gadgets <em>&amp;</em> Getaways<span class="dot">.</span></a>
+<nav class="nav" aria-label="Admin"><a href="/admin">Admin</a><a href="/admin/blog" aria-current="page">Blog og anmeldelser</a><a href="/blog">Se bloggen</a></nav>
+</header>
+<main>
+<div class="wrap ed">
+
+<div id="v-nej" hidden>
+<h1>Log ind først</h1>
+<p style="color:var(--soft-dark)">Du skal være logget ind som topadmin for at skrive indlæg.</p>
+<a class="knap" href="/admin">Gå til login</a>
+</div>
+
+<!-- Liste -->
+<div id="v-liste" hidden>
+<h1>Blog og anmeldelser</h1>
+<div class="ed-bar">
+<button class="knap" type="button" id="nyt">Nyt indlæg</button>
+<span class="ed-status" id="liste-status" role="status" aria-live="polite"></span>
+</div>
+<div class="ed-liste" id="liste"></div>
+</div>
+
+<!-- Editor -->
+<form id="v-ed" class="ed-form" hidden novalidate>
+<h1 id="ed-titel">Nyt indlæg</h1>
+
+<fieldset>
+<legend>Indlægget</legend>
+<div class="to">
+<div><label for="f-kind">Type</label>
+<select id="f-kind"><option value="review">Anmeldelse</option><option value="guide">Guide</option><option value="news">Nyt og bemærket</option></select></div>
+<div><label for="f-kategori">Kategori (valgfri)</label><input type="text" id="f-kategori" maxlength="60" placeholder="fx Luggage">
+</div></div>
+<div><label for="f-titel">Titel</label><input type="text" id="f-titel" maxlength="200" required></div>
+<div><label for="f-slug">Adresse</label><input type="text" id="f-slug" maxlength="120" required>
+<p class="hint" id="f-slug-vis">Bliver til gadgetsandgetaways.com/blog/…</p></div>
+<div><label for="f-manchet">Manchet (to-tre linjer, vises under titlen og i Google)</label><textarea id="f-manchet" maxlength="600"></textarea></div>
+<div class="to">
+<div><label for="f-forfatter">Forfatter</label><input type="text" id="f-forfatter" maxlength="100"></div>
+<div><label for="f-laesetid">Læsetid i minutter (tom = beregnes)</label><input type="number" id="f-laesetid" min="1" max="120"></div>
+</div>
+</fieldset>
+
+<fieldset>
+<legend>Billeder</legend>
+<div>
+<label for="f-billede-fil">Hovedbillede (jpg, png eller webp, højst 5 MB, helst 2100 × 900)</label>
+<div class="ed-billede"><input type="file" id="f-billede-fil" accept="image/jpeg,image/png,image/webp" data-mal="f-billede" data-vis="f-billede-vis"><img id="f-billede-vis" alt="" hidden></div>
+<label for="f-billede" style="margin-top:12px">Billedadresse</label><input type="url" id="f-billede" maxlength="500" placeholder="https://… eller /images/…">
+<label for="f-billede-alt" style="margin-top:12px">Beskrivelse af billedet (til blinde og Google)</label><input type="text" id="f-billede-alt" maxlength="300">
+</div>
+<div>
+<label for="f-for-fil">Forfatterfoto (valgfrit, kvadratisk)</label>
+<div class="ed-billede"><input type="file" id="f-for-fil" accept="image/jpeg,image/png,image/webp" data-mal="f-for" data-vis="f-for-vis"><img id="f-for-vis" alt="" hidden></div>
+<label for="f-for" style="margin-top:12px">Adresse til forfatterfoto</label><input type="url" id="f-for" maxlength="500">
+</div>
+</fieldset>
+
+<fieldset>
+<legend>Brødtekst</legend>
+<div>
+<label for="f-tekst">Tekst</label>
+<textarea id="f-tekst" class="stor"></textarea>
+<p class="hint">Tomme linjer deler afsnit. <b>## Overskrift</b> laver en overskrift. <b>&gt; Citat</b> laver et fremhævet citat. <b>- Punkt</b> laver en liste (ét punkt pr. linje). <b>**fed**</b>, <b>*kursiv*</b>, <b>[tekst](https://adresse)</b> laver et link. <b>![beskrivelse](https://billede)</b> sætter et billede ind.</p>
+</div>
+</fieldset>
+
+<fieldset id="blok-review">
+<legend>Kun anmeldelser</legend>
+<div class="to">
+<div><label for="f-karakter">Karakter (0 til 10)</label><input type="number" id="f-karakter" min="0" max="10" step="0.5"></div>
+<div><label for="f-dom">Dommen i én sætning</label><input type="text" id="f-dom" maxlength="400"></div>
+</div>
+<div class="to">
+<div><label for="f-plus">Plus (ét punkt pr. linje)</label><textarea id="f-plus"></textarea></div>
+<div><label for="f-minus">Minus (ét punkt pr. linje)</label><textarea id="f-minus"></textarea></div>
+</div>
+<div class="to">
+<div><label for="f-specs">Specifikationer (<b>Navn: værdi</b>, ét pr. linje)</label><textarea id="f-specs" placeholder="Vægt: 2,9 kg"></textarea></div>
+<div><label for="f-testet">Testet på (<b>Rute | dato</b>, ét pr. linje)</label><textarea id="f-testet" placeholder="CPH → JFK | 12. okt 2026"></textarea></div>
+</div>
+<div class="to">
+<div><label for="f-prodnavn">Produktnavn</label><input type="text" id="f-prodnavn" maxlength="200"></div>
+<div><label for="f-pris">Pris (fx 3.499 DKK)</label><input type="text" id="f-pris" maxlength="60"></div>
+<div><label for="f-forhandler">Forhandler</label><input type="text" id="f-forhandler" maxlength="100"></div>
+<div><label for="f-kob">Link til køb</label><input type="url" id="f-kob" maxlength="1000" placeholder="https://…"></div>
+</div>
+<div>
+<label for="f-prod-fil">Produktfoto (lille)</label>
+<div class="ed-billede"><input type="file" id="f-prod-fil" accept="image/jpeg,image/png,image/webp" data-mal="f-prod" data-vis="f-prod-vis"><img id="f-prod-vis" alt="" hidden></div>
+<label for="f-prod" style="margin-top:12px">Adresse til produktfoto</label><input type="url" id="f-prod" maxlength="500">
+</div>
+</fieldset>
+
+<fieldset>
+<legend>Mærkning</legend>
+<div class="check"><input type="checkbox" id="f-affiliate" checked><label for="f-affiliate">Indlægget indeholder affiliate-links (viser «Contains affiliate links»)</label></div>
+</fieldset>
+
+<p class="ed-status" id="ed-status" role="status" aria-live="polite"></p>
+<div class="ed-knapper">
+<button class="knap" type="button" id="b-udgiv">Udgiv</button>
+<button class="knap-ud" type="button" id="b-kladde">Gem som kladde</button>
+<a class="knap-ud" id="b-vis" href="#" target="_blank" rel="noopener" hidden>Se indlægget</a>
+<button class="knap-ud" type="button" id="b-tilbage">Tilbage til listen</button>
+<button class="knap-ud fare" type="button" id="b-slet" hidden>Slet indlæg</button>
+</div>
+</form>
+
+</div>
+</main>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+<script>
+(()=>{
+const sb=supabase.createClient("https://oevcaujuziyvrqipbuep.supabase.co","sb_publishable_NaXSNQX_oygK5mKwymivww_42PbewBJ");
+const $=id=>document.getElementById(id);
+const vis=id=>["v-nej","v-liste","v-ed"].forEach(x=>$(x).hidden=x!==id);
+const TYPE={review:"Anmeldelse",guide:"Guide",news:"Nyt og bemærket"};
+let mig=null,nu=null,slugRoert=false;
+
+function status(id,tekst,type){const e=$(id);e.textContent=tekst;e.className="ed-status"+(type?" "+type:"")}
+const lav=(tag,cls,tekst)=>{const e=document.createElement(tag);if(cls)e.className=cls;if(tekst!=null)e.textContent=tekst;return e};
+const tilSlug=t=>t.toLowerCase().replace(/æ/g,"ae").replace(/ø/g,"oe").replace(/å/g,"aa").normalize("NFD").replace(/[̀-ͯ]/g,"").replace(/[^a-z0-9]+/g,"-").replace(/^-+|-+$/g,"").slice(0,120);
+const linjer=t=>String(t||"").split("\n").map(s=>s.trim()).filter(Boolean);
+const tom=v=>{v=String(v==null?"":v).trim();return v?v:null};
+
+async function start(){
+  const {data:{session}}=await sb.auth.getSession();
+  if(!session){vis("v-nej");return}
+  const {data:rolle}=await sb.rpc("mf_role");
+  if(rolle!=="topadmin"){vis("v-nej");return}
+  mig=session.user.email;
+  hentListe();
+}
+
+async function hentListe(){
+  vis("v-liste");status("liste-status","Henter …");
+  const {data,error}=await sb.from("gg_posts").select("id,slug,title,kind,status,published_at,updated_at").order("updated_at",{ascending:false});
+  if(error){status("liste-status","Kunne ikke hente indlæg: "+error.message,"fejl");return}
+  status("liste-status",data.length?"":"Ingen indlæg endnu. Tryk «Nyt indlæg».");
+  const l=$("liste");l.replaceChildren();
+  data.forEach(p=>{
+    const r=lav("div","ed-raekke");const t=lav("div");
+    t.append(lav("strong",null,p.title));
+    const sub=lav("div","sub");const s=lav("b",null,p.status==="published"?"Udgivet":"Kladde");
+    sub.append(s,document.createTextNode(" · "+(TYPE[p.kind]||p.kind)+" · rettet "+new Date(p.updated_at).toLocaleString("da-DK",{dateStyle:"short",timeStyle:"short"})));
+    t.append(sub);
+    const knapper=lav("div");knapper.style.cssText="display:flex;gap:8px;flex-wrap:wrap";
+    const ret=lav("button","knap-ud knap-lille","Rediger");ret.type="button";ret.addEventListener("click",()=>aabn(p.id));
+    knapper.append(ret);
+    r.append(t,knapper);l.append(r);
+  });
+}
+
+function nyttTomt(){return {kind:"review",status:"draft",title:"",slug:"",lede:"",body:"",category:"",image_url:"",image_alt:"",author_name:"",author_image_url:"",read_minutes:null,rating:null,verdict:"",pros:[],cons:[],specs:[],tested_on:[],product_name:"",product_price:"",product_retailer:"",product_image_url:"",buy_url:"",affiliate:true}}
+
+function fyld(p){
+  nu=p;slugRoert=!!p.id;
+  $("ed-titel").textContent=p.id?"Rediger indlæg":"Nyt indlæg";
+  $("f-kind").value=p.kind;$("f-kategori").value=p.category||"";$("f-titel").value=p.title||"";$("f-slug").value=p.slug||"";
+  $("f-manchet").value=p.lede||"";$("f-forfatter").value=p.author_name||"";$("f-laesetid").value=p.read_minutes||"";
+  $("f-billede").value=p.image_url||"";$("f-billede-alt").value=p.image_alt||"";$("f-for").value=p.author_image_url||"";
+  $("f-tekst").value=p.body||"";
+  $("f-karakter").value=p.rating==null?"":p.rating;$("f-dom").value=p.verdict||"";
+  $("f-plus").value=(p.pros||[]).join("\n");$("f-minus").value=(p.cons||[]).join("\n");
+  $("f-specs").value=(p.specs||[]).map(s=>s.k+": "+s.v).join("\n");
+  $("f-testet").value=(p.tested_on||[]).map(r=>r.route+(r.date?" | "+r.date:"")).join("\n");
+  $("f-prodnavn").value=p.product_name||"";$("f-pris").value=p.product_price||"";$("f-forhandler").value=p.product_retailer||"";
+  $("f-kob").value=p.buy_url||"";$("f-prod").value=p.product_image_url||"";
+  $("f-affiliate").checked=p.affiliate!==false;
+  ["f-billede","f-for","f-prod"].forEach(visBillede);
+  visSlug();skiftType();
+  status("ed-status","");
+  const pub=p.status==="published";
+  $("b-udgiv").textContent=pub?"Gem ændringer":"Udgiv";
+  $("b-kladde").textContent=pub?"Tag af siden (kladde)":"Gem som kladde";
+  $("b-slet").hidden=!p.id;
+  const v=$("b-vis");v.hidden=!p.id;if(p.id)v.href="/blog/"+encodeURIComponent(p.slug)+(pub?"":"?preview=1");
+  vis("v-ed");window.scrollTo(0,0);
+}
+async function aabn(id){
+  status("liste-status","Henter …");
+  const {data,error}=await sb.from("gg_posts").select("*").eq("id",id).single();
+  if(error){status("liste-status","Kunne ikke åbne indlægget: "+error.message,"fejl");return}
+  fyld(data);
+}
+
+function skiftType(){$("blok-review").hidden=$("f-kind").value!=="review"}
+function visSlug(){$("f-slug-vis").textContent="Bliver til gadgetsandgetaways.com/blog/"+($("f-slug").value||"…")}
+function visBillede(felt){
+  const img=$(felt+"-vis");if(!img)return;
+  const u=$(felt).value.trim();
+  if(/^(https:\/\/|\/(?!\/))/.test(u)){img.src=u;img.hidden=false}else{img.removeAttribute("src");img.hidden=true}
+}
+
+$("f-kind").addEventListener("change",skiftType);
+$("f-titel").addEventListener("input",()=>{if(!slugRoert){$("f-slug").value=tilSlug($("f-titel").value);visSlug()}});
+$("f-slug").addEventListener("input",()=>{slugRoert=true;visSlug()});
+["f-billede","f-for","f-prod"].forEach(f=>$(f).addEventListener("change",()=>visBillede(f)));
+
+// Upload af billeder til lageret gg-images.
+document.querySelectorAll('input[type=file][data-mal]').forEach(inp=>inp.addEventListener("change",async()=>{
+  const fil=inp.files[0];if(!fil)return;
+  if(!/^image\/(jpeg|png|webp)$/.test(fil.type)){status("ed-status","Kun jpg, png og webp kan uploades.","fejl");inp.value="";return}
+  if(fil.size>5*1024*1024){status("ed-status","Billedet er over 5 MB. Gør det mindre og prøv igen.","fejl");inp.value="";return}
+  status("ed-status","Uploader billede …");
+  const ende=fil.type==="image/png"?"png":fil.type==="image/webp"?"webp":"jpg";
+  const navn=(tilSlug(fil.name.replace(/\.[^.]+$/,""))||"billede")+"-"+Date.now().toString(36)+"."+ende;
+  const {error}=await sb.storage.from("gg-images").upload(navn,fil,{contentType:fil.type,upsert:false});
+  if(error){status("ed-status","Billedet kunne ikke uploades: "+error.message,"fejl");inp.value="";return}
+  const {data}=sb.storage.from("gg-images").getPublicUrl(navn);
+  $(inp.dataset.mal).value=data.publicUrl;visBillede(inp.dataset.mal);inp.value="";
+  status("ed-status","Billedet er uploadet. Husk at gemme indlægget.","ok");
+}));
+
+function samlRaekke(nyStatus){
+  const kind=$("f-kind").value,titel=$("f-titel").value.trim(),slug=$("f-slug").value.trim();
+  if(!titel){return {fejl:"Skriv en titel."}}
+  if(!/^[a-z0-9]+(-[a-z0-9]+)*$/.test(slug)){return {fejl:"Adressen må kun have små bogstaver a-z, tal og bindestreger (fx min-test-af-kuffert)."}}
+  const tekst=$("f-tekst").value;
+  if(nyStatus==="published"&&!tekst.trim()){return {fejl:"Skriv en brødtekst, før indlægget udgives."}}
+  const karakter=$("f-karakter").value.trim();
+  if(karakter!==""&&(isNaN(Number(karakter))||Number(karakter)<0||Number(karakter)>10)){return {fejl:"Karakteren skal være et tal mellem 0 og 10."}}
+  const laes=parseInt($("f-laesetid").value,10);
+  const ord=tekst.trim().split(/\s+/).filter(Boolean).length;
+  const specs=linjer($("f-specs").value).map(l=>{const i=l.indexOf(":");return i>0?{k:l.slice(0,i).trim(),v:l.slice(i+1).trim()}:null}).filter(s=>s&&s.k&&s.v);
+  const testet=linjer($("f-testet").value).map(l=>{const [r,...d]=l.split("|");return {route:r.trim(),date:d.join("|").trim()}}).filter(r=>r.route);
+  const rev=kind==="review";
+  return {rad:{
+    kind,status:nyStatus,title:titel,slug,lede:tom($("f-manchet").value),body:tekst,category:tom($("f-kategori").value),
+    image_url:tom($("f-billede").value),image_alt:tom($("f-billede-alt").value),author_name:tom($("f-forfatter").value),author_image_url:tom($("f-for").value),
+    read_minutes:laes>0?Math.min(laes,120):Math.min(120,Math.max(1,Math.round(ord/200))),
+    rating:rev&&karakter!==""?Number(karakter):null,verdict:rev?tom($("f-dom").value):null,
+    pros:rev?linjer($("f-plus").value):[],cons:rev?linjer($("f-minus").value):[],specs:rev?specs:[],tested_on:rev?testet:[],
+    product_name:rev?tom($("f-prodnavn").value):null,product_price:rev?tom($("f-pris").value):null,product_retailer:rev?tom($("f-forhandler").value):null,
+    buy_url:rev?tom($("f-kob").value):null,product_image_url:rev?tom($("f-prod").value):null,
+    affiliate:$("f-affiliate").checked,updated_by:mig
+  }};
+}
+
+async function gem(nyStatus){
+  const s=samlRaekke(nyStatus);
+  if(s.fejl){status("ed-status",s.fejl,"fejl");return}
+  ["b-udgiv","b-kladde"].forEach(b=>$(b).disabled=true);
+  status("ed-status","Gemmer …");
+  const q=nu&&nu.id?sb.from("gg_posts").update(s.rad).eq("id",nu.id).select("*").single():sb.from("gg_posts").insert(s.rad).select("*").single();
+  const {data,error}=await q;
+  ["b-udgiv","b-kladde"].forEach(b=>$(b).disabled=false);
+  if(error){
+    status("ed-status",error.code==="23505"?"Der findes allerede et indlæg med den adresse. Skift adressen.":"Kunne ikke gemme: "+error.message,"fejl");return;
+  }
+  fyld(data);
+  status("ed-status",nyStatus==="published"?"Gemt og udgivet. Det er nu på siden.":"Gemt som kladde. Besøgende kan ikke se det.","ok");
+}
+$("b-udgiv").addEventListener("click",()=>gem("published"));
+$("b-kladde").addEventListener("click",()=>gem("draft"));
+$("b-tilbage").addEventListener("click",()=>hentListe());
+$("nyt").addEventListener("click",()=>fyld(nyttTomt()));
+$("b-slet").addEventListener("click",async()=>{
+  if(!nu||!nu.id)return;
+  if(!confirm("Slet «"+nu.title+"» for altid? Det kan ikke fortrydes."))return;
+  const {error}=await sb.from("gg_posts").delete().eq("id",nu.id);
+  if(error){status("ed-status","Kunne ikke slette: "+error.message,"fejl");return}
+  hentListe();
+});
+start();
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="en" data-uden-rediger>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Reviews, guides and new gadgets | Gadgets &amp; Getaways</title>
+<meta name="description" content="Reviews, guides and new gadgets for frequent flyers, written by people who take the morning flight themselves.">
+<link rel="canonical" href="https://gadgetsandgetaways.com/blog">
+<meta property="og:title" content="Reviews, guides and new gadgets | Gadgets &amp; Getaways">
+<meta property="og:image" content="https://gadgetsandgetaways.com/images/og-image.jpg">
+<meta name="theme-color" content="#0B1220">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&amp;family=Inter:wght@400;500;600&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/style.css">
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+<header class="wrap head">
+<a class="logo" href="/">Gadgets <em>&amp;</em> Getaways<span class="dot">.</span></a>
+<nav class="nav" aria-label="Main menu">
+<a href="/#gadgets">Gadgets</a>
+<a href="/#kufferter">Luggage</a>
+<a href="/#hoteller">Hotels</a>
+<a href="/#fly">Flights</a>
+<a href="/blog" aria-current="page">Reviews</a>
+<a class="knap" href="/#nyhedsbrev">Get Gate Notes</a>
+</nav>
+</header>
+
+<main id="main">
+<section class="wrap blog-top">
+<span class="over">From the editors</span>
+<h1>Reviews, guides <em>and new gadgets</em></h1>
+<div class="filter" role="group" aria-label="Filter posts">
+<button type="button" data-kind="" aria-pressed="true">All</button>
+<button type="button" data-kind="review" aria-pressed="false">Reviews</button>
+<button type="button" data-kind="guide" aria-pressed="false">Guides</button>
+<button type="button" data-kind="news" aria-pressed="false">New &amp; noted</button>
+</div>
+</section>
+<section class="wrap" style="padding-bottom:var(--section-y)">
+<div class="indlaeg-net" id="liste" style="margin-top:0" aria-live="polite"></div>
+<p class="tom" id="tom" hidden>No posts here yet. Check back soon.</p>
+<p class="tom" id="fejl" hidden>The posts could not be loaded. Please try again in a moment.</p>
+</section>
+</main>
+
+<footer class="fod">
+<div class="wrap" style="padding-top:32px;padding-bottom:32px">
+<div class="fod-bund" style="border:0;padding:0">
+<span>Gadgets &amp; Getaways<span class="acc">.</span> · gadgetsandgetaways.com · [EMAIL] · CVR [CVR NO.]</span>
+<nav aria-label="Legal"><a href="/about.html">About</a><a href="/advertise.html">Advertise with us</a><a href="/about.html#privacy">Privacy policy</a><a href="/about.html#cookies">Cookies</a></nav>
+</div>
+</div>
+</footer>
+
+<script src="/app.js"></script>
+<script src="/blog.js"></script>
+<script>
+(()=>{
+const {hent,kort}=window.GG;
+const liste=document.getElementById("liste"),tom=document.getElementById("tom"),fejl=document.getElementById("fejl");
+let alle=[];
+function vis(kind){
+  const rows=kind?alle.filter(p=>p.kind===kind):alle;
+  liste.replaceChildren(...rows.map(kort));
+  tom.hidden=rows.length>0;
+}
+document.querySelectorAll(".filter button").forEach(b=>b.addEventListener("click",()=>{
+  document.querySelectorAll(".filter button").forEach(x=>x.setAttribute("aria-pressed",x===b?"true":"false"));
+  vis(b.dataset.kind);
+}));
+hent("gg_posts?select=slug,kind,title,image_url,image_alt,author_name,published_at,read_minutes&status=eq.published&order=published_at.desc&limit=60")
+  .then(rows=>{alle=Array.isArray(rows)?rows:[];vis("")})
+  .catch(()=>{fejl.hidden=false});
+})();
+</script>
+</body>
+</html>

@@ -182,7 +182,7 @@ h2.mellem{font-size:clamp(44px,5vw,72px);line-height:.95}
 .kuffert strong{margin-top:-6px;font-family:var(--font-display);font-weight:400;font-size:24px;line-height:1.05}
 
 /* Blog */
-.indlaeg-net{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,360px),1fr));gap:32px;margin-top:40px}
+.indlaeg-net{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,360px),1fr));gap:32px;margin-top:40px}
 .indlaeg{display:flex;flex-direction:column;gap:16px;color:var(--ivory);text-decoration:none}
 .indlaeg .billede{aspect-ratio:3/2;border-radius:18px}
 .indlaeg .meta{display:flex;flex-wrap:wrap;gap:8px 16px;font-family:var(--font-mono);font-size:12px;letter-spacing:.1em;text-transform:uppercase}
