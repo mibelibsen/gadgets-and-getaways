@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="en" data-uden-rediger>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Travel gear for frequent flyers | Gadgets &amp; Getaways</title>
+<meta name="description" content="Headphones, chargers, suitcases, trackers and sleep gear picked for people who fly every week. Search by category and compare prices.">
+<link rel="canonical" href="https://gadgetsandgetaways.com/gear">
+<meta property="og:title" content="Travel gear for frequent flyers | Gadgets &amp; Getaways">
+<meta property="og:image" content="https://gadgetsandgetaways.com/images/og-image.jpg">
+<meta name="theme-color" content="#0B1220">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&amp;family=Inter:wght@400;500;600&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/style.css">
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+<header class="wrap head">
+<a class="logo" href="/">Gadgets <em>&amp;</em> Getaways<span class="dot">.</span></a>
+<nav class="nav" aria-label="Main menu">
+<a href="/gear" aria-current="page">Gadgets</a>
+<a href="/#kufferter">Luggage</a>
+<a href="/#hoteller">Hotels</a>
+<a href="/#fly">Flights</a>
+<a href="/blog">Reviews</a>
+<a class="knap" href="/#nyhedsbrev">Get Gate Notes</a>
+</nav>
+</header>
+
+<main id="main">
+<section class="wrap blog-top moerk">
+<span class="over">Gear</span>
+<h1>Pack <em>smarter</em></h1>
+<p class="hero-lead" style="margin-top:16px">Gear picked for people who fly every week. Search by category and compare prices across shops.</p>
+<form class="gear-soeg" id="soeg-form" role="search" novalidate>
+<label for="soeg" class="skip" style="position:static;left:auto;background:none;padding:0;font-weight:600;color:var(--ivory)">Search gear</label>
+<input class="felt" id="soeg" type="search" placeholder="Search by name, brand or what it does" autocomplete="off" maxlength="80">
+</form>
+<div class="filter" id="filter" role="group" aria-label="Filter by category"></div>
+<p class="mindre" style="margin-top:20px"><span class="maerke annonce" style="margin-right:8px">Found by AI · checked by the editors</span> Suggestions are found with AI and reviewed by the editors before they are published. Prices can change. We may earn a commission on purchases.</p>
+</section>
+<section class="wrap moerk" style="padding-bottom:var(--section-y)">
+<p class="mindre" id="antal" role="status" aria-live="polite" style="margin-bottom:16px"></p>
+<div class="produkter gear-net" id="liste"></div>
+<p class="tom" id="tom" hidden>Nothing matches yet. Try another category or a different search.</p>
+<p class="tom" id="fejl" hidden>The gear could not be loaded. Please try again in a moment.</p>
+</section>
+</main>
+
+<footer class="fod">
+<div class="wrap" style="padding-top:32px;padding-bottom:32px">
+<div class="fod-bund" style="border:0;padding:0">
+<span>Gadgets &amp; Getaways<span class="acc">.</span> · gadgetsandgetaways.com · [EMAIL] · CVR [CVR NO.]</span>
+<nav aria-label="Legal"><a href="/about.html">About</a><a href="/advertise.html">Advertise with us</a><a href="/about.html#privacy">Privacy policy</a><a href="/about.html#cookies">Cookies</a></nav>
+</div>
+</div>
+</footer>
+
+<script src="/app.js"></script>
+<script src="/blog.js"></script>
+<script src="/produkter.js"></script>
+<script>
+(()=>{
+const {KAT,kort,hentUdgivne}=window.GP;
+const liste=document.getElementById("liste"),tom=document.getElementById("tom"),fejl=document.getElementById("fejl"),antal=document.getElementById("antal");
+const felt=document.getElementById("soeg"),filter=document.getElementById("filter");
+let alle=[],kat="",q="";
+const params=new URLSearchParams(location.search);
+if(KAT[params.get("category")])kat=params.get("category");
+q=(params.get("q")||"").slice(0,80);felt.value=q;
+
+function knap(kode,tekst){
+  const b=document.createElement("button");b.type="button";b.dataset.kat=kode;b.textContent=tekst;
+  b.setAttribute("aria-pressed",kode===kat?"true":"false");
+  b.addEventListener("click",()=>{kat=kode;vis()});
+  return b;
+}
+filter.append(knap("","All"),...Object.entries(KAT).map(([k,n])=>knap(k,n)));
+
+function vis(){
+  filter.querySelectorAll("button").forEach(b=>b.setAttribute("aria-pressed",b.dataset.kat===kat?"true":"false"));
+  const ord=q.toLowerCase().split(/\s+/).filter(Boolean);
+  const rows=alle.filter(p=>(!kat||p.category===kat)&&ord.every(o=>[p.name,p.brand,p.why,KAT[p.category]].join(" ").toLowerCase().includes(o)));
+  liste.replaceChildren(...rows.map(kort));
+  tom.hidden=rows.length>0||!alle.length;
+  antal.textContent=alle.length?rows.length+(rows.length===1?" product":" products"):"";
+  const u=new URLSearchParams();if(kat)u.set("category",kat);if(q)u.set("q",q);
+  history.replaceState(null,"",location.pathname+(u.toString()?"?"+u:""));
+}
+felt.addEventListener("input",()=>{q=felt.value.trim().slice(0,80);vis()});
+document.getElementById("soeg-form").addEventListener("submit",e=>e.preventDefault());
+hentUdgivne(200).then(rows=>{alle=Array.isArray(rows)?rows:[];vis();if(!alle.length){tom.textContent="New finds are on the way. Check back soon.";tom.hidden=false}}).catch(()=>{fejl.hidden=false});
+})();
+</script>
+</body>
+</html>

@@ -387,3 +387,22 @@ h2.mellem{font-size:clamp(44px,5vw,72px);line-height:.95}
 .ed-status{min-height:1.5em;font-weight:500}
 .ed-status.fejl{color:#FF9A8F}
 .ed-status.ok{color:var(--accent)}
+
+/* Produkter og søgning */
+.gear-soeg{margin-top:28px;max-width:560px;display:flex;flex-direction:column;gap:8px}
+.gear-soeg .felt{width:100%}
+.gear-net .produkt-krop .maerke.ai{align-self:flex-start}
+.sammenlign{border-top:1px solid var(--card-border);padding-top:12px;font-size:14px}
+.sammenlign summary{cursor:pointer;font-weight:600;min-height:44px;display:flex;align-items:center}
+.sammenlign ul{list-style:none;margin:0;padding:0;display:flex;flex-direction:column}
+.sammenlign li{display:grid;grid-template-columns:1fr auto auto;gap:12px;align-items:center;padding:10px 0;border-top:1px solid var(--card-border)}
+.sammenlign .dim{color:var(--muted-light);font-variant-numeric:tabular-nums}
+.produkt .billede{font-family:var(--font-mono);letter-spacing:.2em}
+/* Produktkort står på hvid bund, også på mørke sider */
+.produkt{color:var(--midnight)}
+.produkt .mindre{color:var(--muted-light)}
+.produkt a.knap-moerk{color:var(--ivory)}
+.produkt a.knap-moerk:hover{color:var(--ivory);background:var(--brass)}
+.produkt .sammenlign a{color:var(--brass);font-weight:600}
+.produkt .sammenlign summary{color:var(--midnight)}
+.gear-soeg .felt{flex:none;width:100%}

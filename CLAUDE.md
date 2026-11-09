@@ -17,6 +17,8 @@ Skriv kode, kommentarer og commit-beskeder på **dansk**. Teksten, som besøgend
 - `app.js`: billedpladsholdere, nyhedsbrevsformular, indlæser `rediger.js`.
 - `rediger.js`: «Rediger siden» for topadmin. Tekster gemmes i `gg_texts`. Virker på `h1`, `h2`, `h3`, `p`, `label`, `legend`, `dt`, `dd`, `li` inde i `main`. Sider med `data-uden-rediger` på `<html>` og `/admin/` springes over.
 - `admin/index.html`: login, «Glemt adgangskode» og valg af ny adgangskode. Efter login står knappen «Rediger siden» nederst til højre på hver side. Nulstilling og invitation går gennem Edge Function `gg-nulstil` v2 (kopi i `supabase/functions/gg-nulstil/`), som kun sender til personer på `gg_admins` og kun linker tilbage til dette site. Invitation kræver login som administrator.
+- `admin/produkter.html`: journalistens produktside. Søg med Gemini (Edge Function `gg-produktsoeg`), vurdér forslagene, udgiv eller gem som kladde, rediger egne produkter, upload billeder, find nye priser.
+- `gear.html`: produktsiden `/gear` med kategorifilter og søgning for besøgende. `produkter.js`: kort og hentning af udgivne produkter. Forsidens «New finds for the carry-on» viser de seks nyeste udgivne produkter og beholder eksemplerne, til der findes et.
 - `admin/team.html`: brugerstyring. Inviter med mail (Edge Function `gg-nulstil`, action `invite`), send nyt link og fjern adgang. Den sidste administrator kan ikke fjernes (trigger i databasen).
 - `admin/blog.html`: editor til blog og anmeldelser (kun topadmin). Liste, nyt indlæg, rediger, upload af billeder, udgiv, tag af siden, slet.
 - `blog.html`: bloglisten på `/blog` med filter. `post.html`: ét indlæg, vist på `/blog/<adresse>` (rewrite i `vercel.json`). `?preview=1` viser en kladde for topadmin.
@@ -60,8 +62,13 @@ Nye billeder lægges i `/images/` med disse navne. Står pladsholderen med filna
 - Siderne bygges i browseren. Google kan læse dem, men indlæg kommer ikke automatisk i `sitemap.xml`.
 - `anmeldelse.html` er stadig designets skabelon (noindex) og bruges ikke af bloggen.
 
+## Produktsøgning (journalisten)
+- Tabel `gg_products` (kategori AUD/PWR/BAG/TRK/SLP/WRK, navn, begrundelse, tilbud som liste, laveste pris, om prisen er læst på siden, dato for pris, kilde ai/manual). Besøgende læser kun udgivne. Kun administratorer skriver.
+- `gg-produktsoeg` (Edge Function, kun administratorer, højst 30 kald i timen): Gemini 2.5 Flash med Google-søgning og den delte nøgle `GEMINI_API_KEY`. Hvert link hentes, siden skal handle om produktet, og prisen læses fra siden (metadata eller JSON-LD). Er den ikke læst på siden, står den som «ikke bekræftet», og journalisten skal sætte hak, før produktet kan udgives. Handlinger: `find` og `priser`. Logges i `gg_soeg_log`.
+- Reglen bag: AI-svar bruges aldrig uden kontrol. Pris, forhandler og dato vises på siden, og «Found by AI · checked by the editors» står på AI-fundne produkter.
+
 ## Ikke bygget endnu
-Gemini-produktforslag, godkendelsesflow, prissammenligning, affiliate-partnere og annoncesystem. Sektionerne står med statiske eksempeldata, så de kan kobles på senere. Nyhedsbrevsformularen gemmer ingenting og siger det til besøgende.
+Affiliate-partnere (rigtige partnerlinks og sporing), hoteller og flydeals fra partnere og annoncesystem. Sektionerne står med statiske eksempeldata, så de kan kobles på senere. Nyhedsbrevsformularen gemmer ingenting og siger det til besøgende.
 
 ## Regler for arbejdet
 - Byg DOM med `textContent`, ikke `innerHTML` med brugerdata.
@@ -70,6 +77,7 @@ Gemini-produktforslag, godkendelsesflow, prissammenligning, affiliate-partnere o
 - Hold grennavne korte, så forhåndsvisningens adresse kan skrives uden at slå den op.
 
 ## Arbejde med sitet som redaktør (journalisten og hans Claude)
+Se `docs/REDAKTOER.md`.
 - Dagligt arbejde sker i admin: tekster rettes direkte på siden med «Rediger siden», blog og anmeldelser skrives under /admin/blog, billeder uploades dér.
 - Ændringer i selve sitet (kode, design, nye sider) laves i dette repo. Arbejd på en kort gren (`claude/…`), og push den. Vercel bygger en forhåndsvisning af grenen. Et push til `main` er en udrulning til gadgetsandgetaways.com.
 - Rør ikke Supabase-tabeller uden præfikset `gg_`, og ret ikke andre funktioner end `gg-nulstil`. Projektet deles med kassen (Store51) og mandlige.dk.

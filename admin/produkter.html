@@ -1,0 +1,342 @@
+<!doctype html>
+<html lang="da">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Produkter | Admin</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&amp;family=Inter:wght@400;500;600&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/style.css">
+<style>
+.res{display:flex;flex-direction:column;gap:12px;padding:20px;border:1px solid var(--line);border-radius:var(--radius-card);background:var(--panel)}
+.res h3{font-size:28px;line-height:1.1}
+.res .sub{font-family:var(--font-mono);font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted-dark)}
+.res ul{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:6px;font-size:15px}
+.res li a{color:var(--accent)}
+.res .ok{color:var(--accent)}.res .nej{color:#FF9A8F}
+.res textarea{min-height:72px}
+.res-net{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,420px),1fr));gap:16px;margin-top:16px}
+.res-knapper{display:flex;flex-wrap:wrap;gap:8px}
+details.afvist{margin-top:16px;color:var(--muted-dark);font-size:14px}
+details.afvist summary{cursor:pointer;min-height:44px;display:flex;align-items:center}
+.sektion{margin-top:48px}
+.sektion h2{font-size:40px;line-height:1.05;margin-bottom:8px}
+</style>
+</head>
+<body>
+<header class="wrap head">
+<a class="logo" href="/">Gadgets <em>&amp;</em> Getaways<span class="dot">.</span></a>
+<nav class="nav" aria-label="Admin"><a href="/admin">Admin</a><a href="/admin/blog">Blog og anmeldelser</a><a href="/admin/produkter" aria-current="page">Produkter</a><a href="/admin/team">Team</a><a href="/">Se siden</a></nav>
+</header>
+<main>
+<div class="wrap ed">
+
+<div id="v-nej" hidden>
+<h1>Log ind først</h1>
+<p style="color:var(--soft-dark)">Du skal være logget ind som administrator for at arbejde med produkter.</p>
+<a class="knap" href="/admin">Gå til login</a>
+</div>
+
+<div id="v-side" hidden>
+<h1>Produkter</h1>
+<p style="color:var(--soft-dark);max-width:64ch">Søg efter produkter i en kategori, vælg dem der skal på siden, og del dem med besøgende. Søgningen bruger Gemini med Google-søgning. Alle links og priser bliver kontrolleret, før du ser dem, men <b>du skal selv vurdere og godkende</b>, før noget bliver vist på siden.</p>
+
+<!-- Søg -->
+<form id="f-soeg" class="ed-form" novalidate style="margin-top:24px">
+<fieldset>
+<legend>Find produkter</legend>
+<div class="to">
+<div><label for="s-kat">Kategori</label>
+<select id="s-kat"></select></div>
+<div><label for="s-q">Søgeord (valgfrit, fx «lille og let» eller et mærke)</label><input type="text" id="s-q" maxlength="120"></div>
+</div>
+<div class="to">
+<div><label for="s-antal">Antal forslag</label>
+<select id="s-antal"><option value="4">4</option><option value="6" selected>6</option><option value="8">8</option></select></div>
+<div style="align-self:end"><button class="knap" type="submit" id="s-knap">Søg</button></div>
+</div>
+<p class="hint">En søgning tager typisk 30 til 90 sekunder. Der kan søges højst 30 gange i timen.</p>
+</fieldset>
+</form>
+<p class="ed-status" id="s-status" role="status" aria-live="polite"></p>
+<div class="res-net" id="res"></div>
+<details class="afvist" id="afvist" hidden><summary id="afvist-tit"></summary><ul id="afvist-liste"></ul></details>
+
+<!-- Dine produkter -->
+<section class="sektion">
+<h2>Dine produkter</h2>
+<div class="ed-bar"><button class="knap-ud" type="button" id="nyt">Tilføj produkt selv</button><span class="ed-status" id="l-status" role="status" aria-live="polite"></span></div>
+<div class="ed-liste" id="liste"></div>
+</section>
+</div>
+
+<!-- Editor -->
+<form id="v-ed" class="ed-form" hidden novalidate>
+<h1 id="e-titel">Produkt</h1>
+<fieldset>
+<legend>Produktet</legend>
+<div class="to">
+<div><label for="e-kat">Kategori</label><select id="e-kat"></select></div>
+<div><label for="e-brand">Mærke</label><input type="text" id="e-brand" maxlength="100"></div>
+</div>
+<div><label for="e-navn">Navn (med model)</label><input type="text" id="e-navn" maxlength="200"></div>
+<div><label for="e-why">Hvorfor det er med (én sætning på engelsk, højst 400 tegn)</label><textarea id="e-why" maxlength="400"></textarea></div>
+</fieldset>
+<fieldset>
+<legend>Billede</legend>
+<div class="ed-billede"><input type="file" id="e-fil" accept="image/jpeg,image/png,image/webp"><img id="e-vis" alt="" hidden></div>
+<div><label for="e-billede">Billedadresse</label><input type="url" id="e-billede" maxlength="500" placeholder="https://… eller /images/…"><p class="hint">Upload dit eget billede eller brug forhandlerens billede kun med tilladelse. Ingen billede = en neutral plads vises.</p></div>
+<div><label for="e-alt">Beskrivelse af billedet</label><input type="text" id="e-alt" maxlength="300"></div>
+</fieldset>
+<fieldset>
+<legend>Pris og tilbud</legend>
+<div><label for="e-offers">Tilbud (<b>Forhandler | pris | link</b>, ét pr. linje, højst 8)</label><textarea id="e-offers" placeholder="Elgiganten | 2499 | https://www.elgiganten.dk/…"></textarea></div>
+<div class="to">
+<div><label for="e-pris">Laveste pris</label><input type="text" inputmode="decimal" id="e-pris"></div>
+<div><label for="e-valuta">Valuta</label><input type="text" id="e-valuta" maxlength="3" value="DKK"></div>
+<div><label for="e-forh">Forhandler for laveste pris</label><input type="text" id="e-forh" maxlength="100"></div>
+<div><label for="e-link">Link til laveste pris</label><input type="url" id="e-link" maxlength="1000"></div>
+</div>
+<div class="res-knapper"><button class="knap-ud knap-lille" type="button" id="e-billigst">Brug billigste tilbud</button><button class="knap-ud knap-lille" type="button" id="e-opdater">Find nye priser (søgning)</button></div>
+<div class="check"><input type="checkbox" id="e-tjekket"><label for="e-tjekket">Jeg har selv tjekket prisen og linket i dag</label></div>
+<p class="hint" id="e-pris-info"></p>
+</fieldset>
+<fieldset>
+<legend>Mærkning</legend>
+<div class="check"><input type="checkbox" id="e-aff" checked><label for="e-aff">Linkene er affiliate-links (viser «We may earn a commission»)</label></div>
+<div class="check"><input type="checkbox" id="e-ai"><label for="e-ai">Fundet med AI (viser «Found by AI · checked by the editors»)</label></div>
+</fieldset>
+<p class="ed-status" id="e-status" role="status" aria-live="polite"></p>
+<div class="ed-knapper">
+<button class="knap" type="button" id="e-udgiv">Udgiv</button>
+<button class="knap-ud" type="button" id="e-kladde">Gem som kladde</button>
+<button class="knap-ud" type="button" id="e-tilbage">Tilbage</button>
+<button class="knap-ud fare" type="button" id="e-slet" hidden>Slet produkt</button>
+</div>
+</form>
+
+</div>
+</main>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+<script>
+(()=>{
+const sb=supabase.createClient("https://oevcaujuziyvrqipbuep.supabase.co","sb_publishable_NaXSNQX_oygK5mKwymivww_42PbewBJ");
+const $=id=>document.getElementById(id);
+const lav=(tag,cls,tekst)=>{const e=document.createElement(tag);if(cls)e.className=cls;if(tekst!=null)e.textContent=tekst;return e};
+const KAT={AUD:"Lyd og støjreduktion (AUD)",PWR:"Opladning og strøm (PWR)",BAG:"Kufferter og tasker (BAG)",TRK:"Sporing og sikkerhed (TRK)",SLP:"Søvn og komfort (SLP)",WRK:"Arbejde på farten (WRK)"};
+const idag=()=>new Date().toISOString().slice(0,10);
+let mig=null,nu=null;
+const vis=id=>["v-nej","v-side","v-ed"].forEach(x=>$(x).hidden=x!==id);
+function status(id,tekst,type){const e=$(id);e.textContent=tekst;e.className="ed-status"+(type?" "+type:"")}
+const tom=v=>{v=String(v==null?"":v).trim();return v?v:null};
+const tilTal=v=>{if(v==null)return null;let s=String(v).replace(/[^\d.,]/g,"");if(!s)return null;
+  if(s.includes(",")&&s.includes("."))s=s.lastIndexOf(",")>s.lastIndexOf(".")?s.replace(/\./g,"").replace(",","."):s.replace(/,/g,"");
+  else if(s.includes(","))s=/,\d{1,2}$/.test(s)?s.replace(",","."):s.replace(/,/g,"");
+  else if(/\.\d{3}$/.test(s))s=s.replace(/\./g,"");
+  const n=parseFloat(s);return isFinite(n)&&n>=0?n:null};
+const pen=(n,v)=>n==null?"–":new Intl.NumberFormat("da-DK",{maximumFractionDigits:2}).format(Number(n))+" "+(v||"DKK");
+const https=u=>/^https:\/\//i.test(String(u||"").trim());
+async function fejlTekst(error,standard){try{const j=await error.context.json();if(j&&j.fejl)return j.fejl}catch(e){}return standard}
+
+for(const k in KAT){["s-kat","e-kat"].forEach(id=>{const o=lav("option",null,KAT[k]);o.value=k;$(id).append(o)})}
+
+async function start(){
+  const {data:{session}}=await sb.auth.getSession();
+  if(!session){vis("v-nej");return}
+  const {data:rolle}=await sb.rpc("gg_role");
+  if(rolle!=="topadmin"){vis("v-nej");return}
+  mig=session.user.email.toLowerCase();
+  vis("v-side");hentListe();
+}
+
+// ---------- Søgning ----------
+let fundet=[];
+$("f-soeg").addEventListener("submit",async e=>{
+  e.preventDefault();
+  $("s-knap").disabled=true;status("s-status","Søger … det kan tage op til et minut. Lad siden stå åben.");
+  $("res").replaceChildren();$("afvist").hidden=true;
+  const {data,error}=await sb.functions.invoke("gg-produktsoeg",{body:{action:"find",category:$("s-kat").value,query:$("s-q").value.trim(),antal:parseInt($("s-antal").value,10)}});
+  $("s-knap").disabled=false;
+  if(error){status("s-status",await fejlTekst(error,"Søgningen mislykkedes. Prøv igen om lidt."),"fejl");return}
+  fundet=data.produkter||[];
+  status("s-status",fundet.length?`Fandt ${fundet.length} forslag i «${data.kategori}». Tjek dem, før du deler.`:"Søgningen fandt ingen forslag, der kunne kontrolleres. Prøv andre søgeord.",fundet.length?"ok":"fejl");
+  visFundet();
+  const af=data.afvist||[];
+  if(af.length){$("afvist-tit").textContent=af.length+" forslag blev kasseret ved kontrollen";const l=$("afvist-liste");l.replaceChildren();af.forEach(a=>l.append(lav("li",null,a.navn+": "+a.grund)));$("afvist").hidden=false}
+});
+
+function visFundet(){
+  const r=$("res");r.replaceChildren();
+  fundet.forEach((p,i)=>r.append(resKort(p,i)));
+}
+function resKort(p,i){
+  const k=lav("div","res");
+  k.append(lav("span","sub",(KAT[p.category]||p.category)+(p.brand?" · "+p.brand:"")));
+  k.append(lav("h3",null,p.name));
+  const why=lav("textarea");why.value=p.why||"";why.maxLength=400;why.setAttribute("aria-label","Begrundelse for "+p.name);k.append(why);
+  const pr=lav("p",p.price_verified?"ok":"nej");
+  pr.textContent=p.price_amount!=null?`Laveste pris: ${pen(p.price_amount,p.price_currency)} hos ${p.price_retailer||"?"} · ${p.price_verified?"pris læst på selve siden":"pris IKKE bekræftet på siden (kommer fra søgningen)"}`:"Ingen pris fundet";
+  k.append(pr);
+  const ul=lav("ul");
+  (p.offers||[]).forEach(o=>{
+    const li=lav("li");const a=lav("a",null,o.retailer||"Forhandler");a.href=o.url;a.target="_blank";a.rel="noopener";
+    li.append(a,document.createTextNode(` ${pen(o.price,o.currency)} · ${o.verified?"pris bekræftet":o.checked?"side åbnet, pris ikke læst":"side kunne ikke åbnes af os"}`));
+    ul.append(li);
+  });
+  k.append(ul);
+  const ch=lav("div","check");const cb=lav("input");cb.type="checkbox";cb.id="tj-"+i;const lb=lav("label",null,"Jeg har selv åbnet linket og tjekket prisen");lb.htmlFor=cb.id;
+  if(p.price_verified){cb.checked=true;cb.disabled=true;lb.textContent="Prisen er bekræftet på selve siden"}
+  ch.append(cb,lb);k.append(ch);
+  const kn=lav("div","res-knapper");
+  const udgiv=lav("button","knap knap-lille","Udgiv på siden");udgiv.type="button";
+  const kladde=lav("button","knap-ud knap-lille","Gem som kladde");kladde.type="button";
+  const skip=lav("button","knap-ud knap-lille","Drop");skip.type="button";
+  const gem=async st=>{
+    if(st==="published"&&p.price_amount!=null&&!p.price_verified&&!cb.checked){status("s-status","Åbn linket og tjek prisen, og sæt hak, før du udgiver «"+p.name+"».","fejl");return}
+    udgiv.disabled=kladde.disabled=true;
+    const rad={status:st,category:p.category,name:p.name,brand:p.brand||null,why:tom(why.value),offers:p.offers||[],price_amount:p.price_amount,price_currency:p.price_currency||"DKK",price_retailer:p.price_retailer,price_url:p.price_url,price_verified:!!(p.price_verified||cb.checked),price_checked_at:p.price_checked_at||idag(),source:"ai",found_query:p.found_query,affiliate:true,created_by:mig};
+    const {error}=await sb.from("gg_products").insert(rad);
+    udgiv.disabled=kladde.disabled=false;
+    if(error){status("s-status",error.code==="23505"?"«"+p.name+"» findes allerede blandt dine produkter.":"Kunne ikke gemme: "+error.message,"fejl");return}
+    fundet.splice(i,1);visFundet();status("s-status","«"+p.name+"» er "+(st==="published"?"udgivet på siden.":"gemt som kladde."),"ok");hentListe();
+  };
+  udgiv.addEventListener("click",()=>gem("published"));kladde.addEventListener("click",()=>gem("draft"));
+  skip.addEventListener("click",()=>{fundet.splice(i,1);visFundet()});
+  kn.append(udgiv,kladde,skip);k.append(kn);
+  return k;
+}
+
+// ---------- Liste ----------
+async function hentListe(){
+  status("l-status","Henter …");
+  const {data,error}=await sb.from("gg_products").select("id,category,name,brand,status,price_amount,price_currency,updated_at").order("updated_at",{ascending:false});
+  if(error){status("l-status","Kunne ikke hente produkter: "+error.message,"fejl");return}
+  status("l-status",data.length?"":"Ingen produkter endnu. Søg ovenfor, eller tilføj et selv.");
+  const l=$("liste");l.replaceChildren();
+  data.forEach(p=>{
+    const r=lav("div","ed-raekke");const t=lav("div");t.append(lav("strong",null,p.name));
+    const sub=lav("div","sub");sub.append(lav("b",null,p.status==="published"?"Udgivet":"Kladde"));
+    sub.append(document.createTextNode(" · "+(KAT[p.category]||p.category)+(p.price_amount!=null?" · fra "+pen(p.price_amount,p.price_currency):"")));
+    t.append(sub);
+    const b=lav("button","knap-ud knap-lille","Rediger");b.type="button";b.addEventListener("click",()=>aabn(p.id));
+    r.append(t,b);l.append(r);
+  });
+}
+async function aabn(id){
+  const {data,error}=await sb.from("gg_products").select("*").eq("id",id).single();
+  if(error){status("l-status","Kunne ikke åbne produktet: "+error.message,"fejl");return}
+  fyld(data);
+}
+
+// ---------- Editor ----------
+const tomtProdukt=()=>({status:"draft",category:"AUD",name:"",brand:"",why:"",image_url:"",image_alt:"",offers:[],price_amount:null,price_currency:"DKK",price_retailer:"",price_url:"",price_verified:false,price_checked_at:null,source:"manual",affiliate:true});
+const offersTekst=of=>(of||[]).map(o=>`${o.retailer||""} | ${o.price==null?"":o.price} | ${o.url||""}`).join("\n");
+function fyld(p){
+  nu=p;
+  $("e-titel").textContent=p.id?"Rediger produkt":"Nyt produkt";
+  $("e-kat").value=p.category;$("e-brand").value=p.brand||"";$("e-navn").value=p.name||"";$("e-why").value=p.why||"";
+  $("e-billede").value=p.image_url||"";$("e-alt").value=p.image_alt||"";visBillede();
+  $("e-offers").value=offersTekst(p.offers);
+  $("e-pris").value=p.price_amount==null?"":String(p.price_amount).replace(".",",");$("e-valuta").value=p.price_currency||"DKK";
+  $("e-forh").value=p.price_retailer||"";$("e-link").value=p.price_url||"";
+  $("e-tjekket").checked=false;$("e-tjekket").disabled=!!p.price_verified&&false;
+  $("e-pris-info").textContent=p.price_amount==null?"":(p.price_verified?"Prisen er bekræftet":"Prisen er ikke bekræftet")+(p.price_checked_at?" (senest tjekket "+p.price_checked_at+")":"")+".";
+  $("e-aff").checked=p.affiliate!==false;$("e-ai").checked=p.source==="ai";
+  const pub=p.status==="published";
+  $("e-udgiv").textContent=pub?"Gem ændringer":"Udgiv";$("e-kladde").textContent=pub?"Tag af siden (kladde)":"Gem som kladde";
+  $("e-slet").hidden=!p.id;status("e-status","");
+  vis("v-ed");window.scrollTo(0,0);
+}
+function visBillede(){const u=$("e-billede").value.trim(),i=$("e-vis");if(/^(https:\/\/|\/(?!\/))/.test(u)){i.src=u;i.hidden=false}else{i.removeAttribute("src");i.hidden=true}}
+$("e-billede").addEventListener("change",visBillede);
+$("e-fil").addEventListener("change",async()=>{
+  const f=$("e-fil").files[0];if(!f)return;
+  if(!/^image\/(jpeg|png|webp)$/.test(f.type)){status("e-status","Kun jpg, png og webp kan uploades.","fejl");$("e-fil").value="";return}
+  if(f.size>5*1024*1024){status("e-status","Billedet er over 5 MB.","fejl");$("e-fil").value="";return}
+  status("e-status","Uploader billede …");
+  const ende=f.type==="image/png"?"png":f.type==="image/webp"?"webp":"jpg";
+  const navn="produkt-"+Date.now().toString(36)+"-"+Math.random().toString(36).slice(2,6)+"."+ende;
+  const {error}=await sb.storage.from("gg-images").upload(navn,f,{contentType:f.type,upsert:false});
+  if(error){status("e-status","Billedet kunne ikke uploades: "+error.message,"fejl");$("e-fil").value="";return}
+  $("e-billede").value=sb.storage.from("gg-images").getPublicUrl(navn).data.publicUrl;visBillede();$("e-fil").value="";
+  status("e-status","Billedet er uploadet. Husk at gemme.","ok");
+});
+
+function laesOffers(){
+  const fund=[];const gamle=new Map((nu&&nu.offers||[]).map(o=>[o.url,o]));
+  String($("e-offers").value).split("\n").map(s=>s.trim()).filter(Boolean).forEach(l=>{
+    const d=l.split("|").map(x=>x.trim());if(d.length<3)return;
+    const url=d.slice(2).join("|").trim();if(!https(url))return;
+    const pris=tilTal(d[1]);const g=gamle.get(url);
+    fund.push(g&&g.price===pris?g:{retailer:d[0].slice(0,100),url,price:pris,currency:$("e-valuta").value.trim().toUpperCase()||"DKK",verified:false,checked:false,checked_at:idag()});
+  });
+  return fund.slice(0,8);
+}
+function billigst(of){
+  const m=of.filter(o=>o.price!=null);if(!m.length)return null;
+  const v=m.filter(o=>o.verified);const pulje=v.length?v:m;
+  return pulje.reduce((a,b)=>b.price<a.price?b:a);
+}
+$("e-billigst").addEventListener("click",()=>{
+  const b=billigst(laesOffers());
+  if(!b){status("e-status","Ingen af tilbuddene har en pris.","fejl");return}
+  $("e-pris").value=String(b.price).replace(".",",");$("e-forh").value=b.retailer;$("e-link").value=b.url;$("e-valuta").value=b.currency||"DKK";
+  status("e-status","Laveste pris sat til "+pen(b.price,b.currency)+" hos "+b.retailer+".","ok");
+});
+$("e-opdater").addEventListener("click",async()=>{
+  const navn=$("e-navn").value.trim();if(navn.length<2){status("e-status","Skriv produktets navn først.","fejl");return}
+  $("e-opdater").disabled=true;status("e-status","Søger efter priser … det kan tage op til et minut.");
+  const {data,error}=await sb.functions.invoke("gg-produktsoeg",{body:{action:"priser",name:navn,brand:$("e-brand").value.trim()}});
+  $("e-opdater").disabled=false;
+  if(error){status("e-status",await fejlTekst(error,"Søgningen mislykkedes."),"fejl");return}
+  const of=data.offers||[];
+  if(!of.length){status("e-status","Fandt ingen priser, der kunne kontrolleres.","fejl");return}
+  nu=Object.assign({},nu,{offers:of});
+  $("e-offers").value=offersTekst(of);
+  const b=data.bedst;if(b&&b.price!=null){$("e-pris").value=String(b.price).replace(".",",");$("e-forh").value=b.retailer;$("e-link").value=b.url;$("e-valuta").value=b.currency||"DKK";nu.price_verified=!!b.verified}
+  $("e-pris-info").textContent=nu.price_verified?"Prisen er læst på selve siden i dag.":"Prisen er IKKE bekræftet på siden. Åbn linket og tjek den.";
+  status("e-status",`Fandt ${of.length} tilbud. Tjek dem, og gem.`,"ok");
+});
+
+function samlProdukt(st){
+  const navn=$("e-navn").value.trim();if(!navn)return {fejl:"Skriv et navn."};
+  const offers=laesOffers();
+  let pris=tilTal($("e-pris").value);const link=tom($("e-link").value);
+  if(link&&!https(link))return {fejl:"Linket til laveste pris skal starte med https://"};
+  const verified=!!(nu&&nu.price_verified&&pris===(nu.price_amount==null?null:Number(nu.price_amount)))||$("e-tjekket").checked||(offers.some(o=>o.verified&&o.price===pris));
+  if(st==="published"){
+    if(!link&&!offers.length)return {fejl:"Der skal være mindst ét link, før produktet udgives."};
+    if(pris!=null&&!verified)return {fejl:"Åbn linket og tjek prisen, og sæt hak ved «Jeg har selv tjekket prisen», før du udgiver."};
+  }
+  const gemt=nu&&nu.price_checked_at&&verified&&!$("e-tjekket").checked?nu.price_checked_at:idag();
+  return {rad:{status:st,category:$("e-kat").value,name:navn,brand:tom($("e-brand").value),why:tom($("e-why").value),image_url:tom($("e-billede").value),image_alt:tom($("e-alt").value),
+    offers,price_amount:pris,price_currency:$("e-valuta").value.trim().toUpperCase().slice(0,3)||"DKK",price_retailer:tom($("e-forh").value),price_url:link,price_verified:verified,price_checked_at:pris!=null?gemt:null,
+    source:$("e-ai").checked?"ai":"manual",affiliate:$("e-aff").checked,created_by:(nu&&nu.created_by)||mig}};
+}
+async function gem(st){
+  const s=samlProdukt(st);if(s.fejl){status("e-status",s.fejl,"fejl");return}
+  ["e-udgiv","e-kladde"].forEach(b=>$(b).disabled=true);status("e-status","Gemmer …");
+  const q=nu&&nu.id?sb.from("gg_products").update(s.rad).eq("id",nu.id).select("*").single():sb.from("gg_products").insert(s.rad).select("*").single();
+  const {data,error}=await q;
+  ["e-udgiv","e-kladde"].forEach(b=>$(b).disabled=false);
+  if(error){status("e-status",error.code==="23505"?"Der findes allerede et produkt med det navn.":"Kunne ikke gemme: "+error.message,"fejl");return}
+  fyld(data);status("e-status",st==="published"?"Gemt og udgivet. Det er nu på siden.":"Gemt som kladde. Besøgende kan ikke se det.","ok");
+}
+$("e-udgiv").addEventListener("click",()=>gem("published"));
+$("e-kladde").addEventListener("click",()=>gem("draft"));
+$("e-tilbage").addEventListener("click",()=>{vis("v-side");hentListe()});
+$("nyt").addEventListener("click",()=>fyld(tomtProdukt()));
+$("e-slet").addEventListener("click",async()=>{
+  if(!nu||!nu.id)return;if(!confirm("Slet «"+nu.name+"» for altid? Det kan ikke fortrydes."))return;
+  const {error}=await sb.from("gg_products").delete().eq("id",nu.id);
+  if(error){status("e-status","Kunne ikke slette: "+error.message,"fejl");return}
+  vis("v-side");hentListe();
+});
+start();
+})();
+</script>
+</body>
+</html>
