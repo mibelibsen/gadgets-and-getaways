@@ -86,7 +86,8 @@ function tilTal(v: unknown): number | null {
   let s = v.replace(/[^\d.,]/g, "");
   if (!s) return null;
   if (s.includes(",") && s.includes(".")) s = s.lastIndexOf(",") > s.lastIndexOf(".") ? s.replace(/\./g, "").replace(",", ".") : s.replace(/,/g, "");
-  else if (s.includes(",")) s = /,\d{1,2}$/.test(s) ? s.replace(",", ".") : s.replace(/,/g, "");
+  // Komma + 1-2 eller 4+ cifre er decimaler («899,95», «399,0000»). Komma + præcis 3 cifre er tusindtalsadskiller («1,299»).
+  else if (s.includes(",")) s = /,\d{1,2}$|,\d{4,}$/.test(s) ? s.replace(",", ".") : s.replace(/,/g, "");
   else if (/\.\d{3}$/.test(s) && (s.match(/\./g) || []).length >= 1) s = s.replace(/\./g, "");
   const n = parseFloat(s);
   return isFinite(n) && n >= 0 ? n : null;
@@ -165,7 +166,10 @@ async function kontrolOffer(o: Record<string, unknown>, navn: string): Promise<{
   let pris = tilTal(o.price); let valuta = String(o.currency ?? "DKK").toUpperCase().slice(0, 3) || "DKK"; let bekraeftet = false;
   let foer = tilTal(o.was_price); let foerOk = false;
   if (kunne && s.html) {
-    if (!handlerOm(s.html, navn)) return { grund: "Siden handler ikke om produktet" };
+    if (!handlerOm(s.html, navn)) {
+      const titel = dekod(s.html.match(/<title[^>]*>([^<]*)<\/title>/i)?.[1] ?? "").slice(0, 90);
+      return { grund: "Siden handler ikke om produktet" + (titel ? ` (sidens titel: «${titel}»)` : "") };
+    }
     const f = findPris(s.html, navn);
     if (f) { pris = f.pris; valuta = f.valuta; bekraeftet = true; if (f.foer != null) { foer = f.foer; foerOk = true; } }
   }
