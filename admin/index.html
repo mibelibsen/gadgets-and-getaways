@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="da">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Admin | Gadgets &amp; Getaways</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&amp;family=Inter:wght@400;500;600&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/style.css">
+</head>
+<body>
+<header class="wrap head">
+<a class="logo" href="/">Gadgets <em>&amp;</em> Getaways<span class="dot">.</span></a>
+</header>
+<main>
+<div class="wrap">
+<div class="login" id="v-login" hidden>
+<h1 style="font-size:56px;line-height:1">Log ind</h1>
+<form id="f-login" novalidate style="display:flex;flex-direction:column;gap:16px">
+<div><label for="l-mail">Mail</label><input class="felt" id="l-mail" type="email" required autocomplete="username"></div>
+<div><label for="l-kode">Adgangskode</label><input class="felt" id="l-kode" type="password" required autocomplete="current-password"></div>
+<button class="knap" type="submit">Log ind</button>
+<p class="status" id="login-besked" role="status" aria-live="polite"></p>
+</form>
+</div>
+<div class="login" id="v-ok" hidden>
+<h1 style="font-size:56px;line-height:1">Du er logget ind</h1>
+<p id="hvem" style="color:var(--soft-dark)"></p>
+<p style="color:var(--soft-dark)">Gå til en side på sitet. Nederst til højre står knappen «Rediger siden». Klik i en tekst, ret den, og tryk «Gem».</p>
+<a class="knap" href="/">Gå til forsiden</a>
+<button class="knap-ud" type="button" id="logud">Log ud</button>
+</div>
+<div class="login" id="v-ingen" hidden>
+<h1 style="font-size:56px;line-height:1">Ingen adgang</h1>
+<p style="color:var(--soft-dark)">Kontoen har ikke rollen topadmin og kan derfor ikke redigere sitet.</p>
+<button class="knap-ud" type="button" id="logud2">Log ud</button>
+</div>
+</div>
+</main>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+<script>
+(()=>{
+const sb=supabase.createClient("https://oevcaujuziyvrqipbuep.supabase.co","sb_publishable_NaXSNQX_oygK5mKwymivww_42PbewBJ");
+const $=id=>document.getElementById(id);
+const vis=id=>["v-login","v-ok","v-ingen"].forEach(x=>$(x).hidden=x!==id);
+async function tjek(){
+  const {data:{session}}=await sb.auth.getSession();
+  if(!session){vis("v-login");return}
+  const {data:rolle}=await sb.rpc("mf_role");
+  if(rolle==="topadmin"){$("hvem").textContent=session.user.email;vis("v-ok")}else vis("v-ingen");
+}
+$("f-login").addEventListener("submit",async e=>{
+  e.preventDefault();
+  const b=$("login-besked");b.textContent="Logger ind …";
+  const {error}=await sb.auth.signInWithPassword({email:$("l-mail").value.trim(),password:$("l-kode").value});
+  if(error){b.textContent="Mail eller adgangskode er forkert.";return}
+  b.textContent="";tjek();
+});
+const logud=async()=>{await sb.auth.signOut();location.reload()};
+$("logud").addEventListener("click",logud);$("logud2").addEventListener("click",logud);
+tjek();
+})();
+</script>
+</body>
+</html>
