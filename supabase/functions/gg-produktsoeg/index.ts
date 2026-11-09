@@ -263,7 +263,9 @@ function bedst(alle: Offer[]): Offer | null {
 const baggrund = (p: Promise<unknown>) => (globalThis as any).EdgeRuntime?.waitUntil?.(p);
 
 // Ét Gemini-kald med Google-søgning. «Tænketid» er slået fra (hurtigere). Afvises det, prøves uden den indstilling.
-async function gemini(prompt: string, tidsgraense: number): Promise<Record<string, unknown>[]> {
+type Kilde = { uri: string; title: string };
+type GemSvar = { rows: Record<string, unknown>[]; kilder: Kilde[] };
+async function gemini(prompt: string, tidsgraense: number): Promise<GemSvar> {
   const kald = async (udenTaenketid: boolean) => {
     const ctl = new AbortController(); const t = setTimeout(() => ctl.abort(), tidsgraense);
     try {
@@ -284,7 +286,24 @@ async function gemini(prompt: string, tidsgraense: number): Promise<Record<strin
   if (!r.ok && /thinking/i.test(String(r.gj?.error?.message ?? ""))) r = await kald(false);
   if (!r.ok) throw new Error("Gemini svarede med fejl: " + (r.gj?.error?.message ?? "ukendt fejl"));
   const tekst: string = (r.gj?.candidates?.[0]?.content?.parts ?? []).map((p: { text?: string }) => p.text ?? "").join("");
-  try { const m = tekst.replace(/```json|```/g, "").match(/\[[\s\S]*\]/); const a = m ? JSON.parse(m[0]) : []; return Array.isArray(a) ? a : []; } catch { return []; }
+  // Siderne, Google faktisk fandt (grounding). Modellens egne adresser er ofte gættede og giver 404.
+  const kilder: Kilde[] = ((r.gj?.candidates?.[0]?.groundingMetadata?.groundingChunks ?? []) as { web?: { uri?: string; title?: string } }[])
+    .map((c) => ({ uri: String(c.web?.uri ?? ""), title: String(c.web?.title ?? "") })).filter((c) => c.uri.startsWith("https://"));
+  try { const m = tekst.replace(/```json|```/g, "").match(/\[[\s\S]*\]/); const a = m ? JSON.parse(m[0]) : []; return { rows: Array.isArray(a) ? a : [], kilder }; } catch { return { rows: [], kilder }; }
+}
+
+// Er et tilbud ikke til at bruge (404, forkert side), prøves de sider, Google selv fandt: først fra samme forhandler, så andre.
+// Hver side skal stadig handle om produktet (kontrolOffer), så en forkert side kommer ikke med.
+async function redning(o: Record<string, unknown>, navn: string, kilder: Kilde[], brugt: Set<string>): Promise<Offer | null> {
+  let host = ""; try { host = new URL(String(o.url ?? "")).hostname.replace(/^www\./, "").toLowerCase(); } catch { /* */ }
+  const samme = (k: Kilde) => !!host && (k.title.toLowerCase().replace(/^www\./, "") === host || k.title.toLowerCase().includes(host));
+  const raekke = [...kilder.filter(samme), ...kilder.filter((k) => !samme(k))].filter((k) => !brugt.has(k.uri)).slice(0, 4);
+  for (const k of raekke) {
+    brugt.add(k.uri);
+    const kk = await kontrolOffer({ ...o, url: k.uri, price: null, was_price: null }, navn);
+    if (kk.offer) return kk.offer;
+  }
+  return null;
 }
 
 // Kør fn på alle elementer, højst n ad gangen.
@@ -320,9 +339,10 @@ For each product, find up to 2 shop pages where it can be bought, preferring Dan
 Return ONLY a JSON array, no other text. Each item: {"name": the exact product name including the model, "brand": the brand, "why": ONE sentence in English, at most 140 characters, in your own words, saying concretely why it suits frequent flyers (no slogans, no quotation marks), "image": the direct address (https) of a product photo of this exact product, taken from the shop or the brand's own page, or null, "offers": [{"retailer": shop name, "url": the product page address, "price": number, "currency": "DKK", "was_price": number or null}]}.
 ${SPROG_REGLER}`, 100000));
   const svar = await Promise.allSettled(kald);
-  const fund: Record<string, unknown>[] = []; const fejl: string[] = [];
-  svar.forEach((r) => { if (r.status === "fulfilled") fund.push(...r.value); else fejl.push(String((r.reason as Error)?.message ?? r.reason)); });
+  const fund: Record<string, unknown>[] = []; const fejl: string[] = []; const kilder: Kilde[] = [];
+  svar.forEach((r) => { if (r.status === "fulfilled") { fund.push(...r.value.rows); kilder.push(...r.value.kilder); } else fejl.push(String((r.reason as Error)?.message ?? r.reason)); });
   if (!fund.length) throw new Error(fejl[0] ?? "Søgningen fandt ingen produkter. Prøv andre søgeord.");
+  const brugteKilder = new Set<string>();
 
   const { data: kendte } = await admin.from("gg_products").select("name");
   const kendt = new Set((kendte ?? []).map((x: { name: string }) => x.name.toLowerCase()));
@@ -347,6 +367,10 @@ ${SPROG_REGLER}`, 100000));
       const kk = await kontrolOffer(o, navn);
       if (kk.offer && !set.has(kk.offer.url)) { set.add(kk.offer.url); offers.push(kk.offer); } else if (kk.grund) sidsteGrund = kk.grund;
     }));
+    if (!offers.length && rae.length) {
+      const red = await redning(rae[0], navn, kilder, brugteKilder);
+      if (red && !set.has(red.url)) { set.add(red.url); offers.push(red); }
+    }
     if (!offers.length) { afvist.push({ navn, grund: sidsteGrund }); return; }
     markerAfvigende(offers);
     const sorteret = sorter(offers); const b = bedst(sorteret);
@@ -368,7 +392,7 @@ ${SPROG_REGLER}`, 100000));
 }
 
 async function koerPriser(navn: string, maerke: string) {
-  const fund = await gemini(`Today is ${idag()}. Use Google Search to find the lowest current prices in Denmark for this exact product: "${(maerke + " " + navn).trim()}". Prefer Danish shops and shops that ship to Denmark. It must be exactly this model.
+  const { rows: fund, kilder } = await gemini(`Today is ${idag()}. Use Google Search to find the lowest current prices in Denmark for this exact product: "${(maerke + " " + navn).trim()}". Prefer Danish shops and shops that ship to Denmark. It must be exactly this model.
 Return ONLY a JSON array of up to 5 offers, no other text: [{"retailer": shop name, "url": the product page address, "price": number, "currency": "DKK", "was_price": number or null}].
 ${SPROG_REGLER}`, 100000);
   const afvist: { navn: string; grund: string }[] = []; const offers: Offer[] = []; const set = new Set<string>();
@@ -376,6 +400,10 @@ ${SPROG_REGLER}`, 100000);
     const kk = await kontrolOffer(o, navn);
     if (kk.offer && !set.has(kk.offer.url)) { set.add(kk.offer.url); offers.push(kk.offer); } else if (kk.grund) afvist.push({ navn: String(o.url ?? ""), grund: kk.grund });
   });
+  if (!offers.length) {
+    const red = await redning({ retailer: "", url: "" }, navn, kilder, new Set());
+    if (red) offers.push(red);
+  }
   markerAfvigende(offers);
   const sorteret = sorter(offers);
   return { ok: true, model: MODEL, offers: sorteret, bedst: bedst(sorteret), afvist };
