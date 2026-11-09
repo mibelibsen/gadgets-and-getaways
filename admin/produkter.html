@@ -206,6 +206,11 @@ function visFundet(){
 function resKort(p){
   const k=lav("div","res");
   k.append(lav("span","sub",(KAT[p.category]||p.category)+(p.brand?" · "+p.brand:"")));
+  if(p.image_url&&/^https:\/\//.test(p.image_url)){
+    const im=document.createElement("img");im.src=p.image_url;im.alt=p.name;im.loading="lazy";im.referrerPolicy="no-referrer";
+    im.style.cssText="width:120px;height:120px;object-fit:contain;background:#fff;border-radius:8px;float:right;margin:0 0 8px 12px";
+    im.addEventListener("error",()=>im.remove());k.append(im);
+  }
   k.append(lav("h3",null,p.name));
   const why=lav("textarea");why.value=p.why||"";why.maxLength=400;why.setAttribute("aria-label","Begrundelse for "+p.name);k.append(why);
   const pr=lav("p",p.price_verified?"ok":"nej");
@@ -234,7 +239,7 @@ function resKort(p){
     if(st==="published"&&p.price_amount!=null&&!p.price_verified&&!cb.checked){status("s-status","Åbn linket og tjek prisen, og sæt hak, før du udgiver «"+p.name+"».","fejl");return}
     udgiv.disabled=kladde.disabled=true;
     const foerOk=p.price_was!=null&&rp!=null;
-    const rad={status:st,category:p.category,name:p.name,brand:p.brand||null,why:tom(why.value),offers:p.offers||[],price_amount:p.price_amount,price_currency:p.price_currency||"DKK",price_retailer:p.price_retailer,price_url:p.price_url,price_verified:!!(p.price_verified||cb.checked),price_checked_at:p.price_checked_at||idag(),price_was:foerOk?p.price_was:null,discount_verified:foerOk&&!!(p.discount_verified||cb.checked),source:"ai",found_query:p.found_query,affiliate:true,created_by:mig};
+    const rad={status:st,category:p.category,name:p.name,brand:p.brand||null,why:tom(why.value),image_url:p.image_url||null,image_alt:p.image_url?p.name:null,offers:p.offers||[],price_amount:p.price_amount,price_currency:p.price_currency||"DKK",price_retailer:p.price_retailer,price_url:p.price_url,price_verified:!!(p.price_verified||cb.checked),price_checked_at:p.price_checked_at||idag(),price_was:foerOk?p.price_was:null,discount_verified:foerOk&&!!(p.discount_verified||cb.checked),source:"ai",found_query:p.found_query,affiliate:true,created_by:mig};
     const {error}=await sb.from("gg_products").insert(rad);
     udgiv.disabled=kladde.disabled=false;
     if(error){status("s-status",error.code==="23505"?"«"+p.name+"» findes allerede blandt dine produkter.":"Kunne ikke gemme: "+error.message,"fejl");return}

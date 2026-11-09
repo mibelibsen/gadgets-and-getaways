@@ -37,7 +37,7 @@ const KATEGORIER: Record<string, { navn: string; beskrivelse: string }> = {
   WRK: { navn: "Working on the move", beskrivelse: "laptop stands, portable monitors, travel routers, compact keyboards and mice, laptop sleeves" },
 };
 
-type Offer = { retailer: string; url: string; price: number | null; currency: string; verified: boolean; checked: boolean; checked_at: string; was: number | null; was_verified: boolean; suspect?: boolean };
+type Offer = { retailer: string; url: string; price: number | null; currency: string; verified: boolean; checked: boolean; checked_at: string; was: number | null; was_verified: boolean; suspect?: boolean; image?: string | null };
 
 // ---------- hjælpere ----------
 const dekod = (s: string) => s.replace(/&amp;/g, "&").replace(/&quot;/g, '"').replace(/&#0?39;|&apos;/g, "'").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&#(\d+);/g, (_, n) => String.fromCharCode(+n)).replace(/\s+/g, " ").trim();
@@ -140,6 +140,60 @@ function findPris(html: string, navn?: string): { pris: number; valuta: string; 
   return { pris: b.pris, valuta: b.valuta, foer: b.foer };
 }
 
+// Billede til produktet, som REFERENCE: kun adressen gemmes, billedet ligger hos forhandleren og vises derfra.
+// Først billedet på det produkt i sidens JSON-LD, der matcher navnet, derefter og:image / twitter:image.
+// Kun https, højst 500 tegn, aldrig data:-adresser, SVG eller noget, der ligner logo eller pladsholder.
+function absolutBillede(raa: unknown, side: string): string | null {
+  if (typeof raa !== "string" || !raa.trim()) return null;
+  try {
+    const u = new URL(dekod(raa.trim()), side);
+    u.hash = "";
+    if (u.protocol !== "https:" || !offentligHost(u.hostname)) return null;
+    const s2 = u.toString();
+    if (s2.length > 500) return null;
+    const fil = u.pathname.split("/").pop() ?? "";
+    if (/\.svg$/i.test(fil) || /logo|placeholder|noimage|no-image|default[-_]?image|blank/i.test(fil)) return null;
+    return s2;
+  } catch { return null; }
+}
+function findBillede(html: string, side: string, navn?: string): string | null {
+  const kand: unknown[] = [];
+  const gaa = (o: unknown, dybde = 0, passer = true) => {
+    if (!o || dybde > 8) return;
+    if (Array.isArray(o)) { o.forEach((x) => gaa(x, dybde + 1, passer)); return; }
+    if (typeof o !== "object") return;
+    const ob = o as Record<string, unknown>;
+    const erProdukt = /Product/i.test(JSON.stringify(ob["@type"] ?? ""));
+    const mit = erProdukt ? (typeof ob.name === "string" && navn ? navnPasser(ob.name, navn) : !navn) : passer;
+    if (erProdukt && mit && ob.image) {
+      const im = ob.image;
+      for (const x of Array.isArray(im) ? im : [im]) kand.push(typeof x === "string" ? x : (x as Record<string, unknown>)?.url);
+    }
+    for (const k of ["@graph", "mainEntity", "itemListElement", "item"]) if (ob[k]) gaa(ob[k], dybde + 1, mit);
+  };
+  for (const m of html.matchAll(/<script[^>]+type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi)) {
+    try { gaa(JSON.parse(m[1])); } catch { /* ugyldig JSON-LD springes over */ }
+  }
+  kand.push(meta(html, "og:image:secure_url"), meta(html, "og:image"), meta(html, "twitter:image"));
+  for (const k of kand) { const u = absolutBillede(k, side); if (u) return u; }
+  return null;
+}
+// Kan billedet hentes og er det et billede? HEAD først, ellers en GET hvor kroppen ikke læses.
+async function kontrolBillede(url: string): Promise<boolean> {
+  const forsoeg = async (metode: string) => {
+    const ctl = new AbortController(); const t = setTimeout(() => ctl.abort(), 6000);
+    try {
+      const r = await fetch(url, { method: metode, redirect: "follow", signal: ctl.signal, headers: { "User-Agent": "Mozilla/5.0 (compatible; GadgetsGetawaysLinkCheck/1.0; +https://gadgetsandgetaways.com)" } });
+      await r.body?.cancel();
+      return r;
+    } catch { return null; } finally { clearTimeout(t); }
+  };
+  let r = await forsoeg("HEAD");
+  if (!r || r.status === 403 || r.status === 405 || r.status === 501) r = await forsoeg("GET");
+  if (!r || !r.ok) return false;
+  return /^image\/(jpeg|jpg|png|webp|gif|avif)/i.test(r.headers.get("content-type") ?? "");
+}
+
 // Rabat i hele procent. Kun hvis førprisen er højere end prisen.
 function rabatPct(foer: number | null | undefined, pris: number | null | undefined): number | null {
   if (foer == null || pris == null || !(foer > pris) || !(pris >= 0)) return null;
@@ -174,7 +228,7 @@ async function kontrolOffer(o: Record<string, unknown>, navn: string): Promise<{
     if (f) { pris = f.pris; valuta = f.valuta; bekraeftet = true; if (f.foer != null) { foer = f.foer; foerOk = true; } }
   }
   if (foer != null && (pris == null || foer <= pris)) { foer = null; foerOk = false; }
-  return { offer: { retailer: dekod(String(o.retailer ?? host)).slice(0, 100) || host, url: s.url, price: pris, currency: valuta, verified: bekraeftet, checked: kunne, checked_at: idag(), was: foer, was_verified: foerOk } };
+  return { offer: { retailer: dekod(String(o.retailer ?? host)).slice(0, 100) || host, url: s.url, price: pris, currency: valuta, verified: bekraeftet, checked: kunne, checked_at: idag(), was: foer, was_verified: foerOk, image: kunne && s.html ? findBillede(s.html, s.url, navn) : null } };
 }
 
 // En pris, der er læst på siden, men afviger kraftigt fra de øvrige tilbud på samme produkt (under 40 % eller over 250 %
@@ -263,7 +317,7 @@ async function koerFind(katKode: string, soeg: string, antal: number) {
 Use Google Search to find ${pr} real products that are on sale now in the category "${kat.navn}" (${kat.beskrivelse})${soeg ? `, matching: "${soeg}"` : ""}.${k > 1 ? ` Focus on: ${VINKLER[i]}.` : ""}
 Prefer well-reviewed products from established brands that suit people who fly every week. Leave out discontinued products.
 For each product, find up to 2 shop pages where it can be bought, preferring Danish shops and shops that ship to Denmark.
-Return ONLY a JSON array, no other text. Each item: {"name": the exact product name including the model, "brand": the brand, "why": ONE sentence in English, at most 140 characters, in your own words, saying concretely why it suits frequent flyers (no slogans, no quotation marks), "offers": [{"retailer": shop name, "url": the product page address, "price": number, "currency": "DKK", "was_price": number or null}]}.
+Return ONLY a JSON array, no other text. Each item: {"name": the exact product name including the model, "brand": the brand, "why": ONE sentence in English, at most 140 characters, in your own words, saying concretely why it suits frequent flyers (no slogans, no quotation marks), "image": the direct address (https) of a product photo of this exact product, taken from the shop or the brand's own page, or null, "offers": [{"retailer": shop name, "url": the product page address, "price": number, "currency": "DKK", "was_price": number or null}]}.
 ${SPROG_REGLER}`, 100000));
   const svar = await Promise.allSettled(kald);
   const fund: Record<string, unknown>[] = []; const fejl: string[] = [];
@@ -296,8 +350,14 @@ ${SPROG_REGLER}`, 100000));
     if (!offers.length) { afvist.push({ navn, grund: sidsteGrund }); return; }
     markerAfvigende(offers);
     const sorteret = sorter(offers); const b = bedst(sorteret);
+    // Billede som reference: først fra det tilbud, der er laveste pris, så fra de andre. Kun et, der kan hentes.
+    let billede: string | null = null;
+    const gemBillede = absolutBillede(f.image, "https://example.com/");
+    for (const kand of [b?.image, ...sorteret.map((x) => x.image), gemBillede].filter((x, i, a): x is string => !!x && a.indexOf(x) === i).slice(0, 4)) {
+      if (await kontrolBillede(kand)) { billede = kand; break; }
+    }
     produkter.push({
-      name: navn, brand: String(f.brand ?? "").trim().slice(0, 100) || null, why, category: katKode,
+      name: navn, brand: String(f.brand ?? "").trim().slice(0, 100) || null, why, category: katKode, image_url: billede, image_alt: billede ? navn : null,
       offers: sorteret, price_amount: b?.price ?? null, price_currency: b?.currency ?? "DKK", price_retailer: b?.retailer ?? null,
       price_url: b?.url ?? null, price_verified: !!b?.verified, price_checked_at: dato, source: "ai", found_query: soeg || null,
       price_was: b?.was ?? null, discount_pct: rabatPct(b?.was, b?.price), discount_verified: !!b?.was_verified,

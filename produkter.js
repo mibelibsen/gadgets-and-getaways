@@ -19,7 +19,7 @@ function kort(p){
   const a=el("article","produkt");
   const b=el("div","billede");
   const src=sikkerUrl(p.image_url);
-  if(src){const i=new Image();i.src=src;i.alt=p.image_alt||p.name;i.loading="lazy";i.width=1200;i.height=900;b.append(i)}
+  if(src){const i=new Image();i.src=src;i.alt=p.image_alt||p.name;i.loading="lazy";i.width=1200;i.height=900;i.referrerPolicy="no-referrer";i.style.objectFit="contain";i.style.background="#fff";i.addEventListener("error",()=>{i.remove();b.prepend(document.createTextNode(p.category))});b.append(i)}
   else b.textContent=p.category;
   const rb=rabat(p);
   if(rb)b.append(el("span","rabat","−"+rb.pct+"%"));
