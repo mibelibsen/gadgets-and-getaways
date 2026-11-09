@@ -1,9 +1,9 @@
-// gg-produktsoeg v3: produktsøgning til journalisten på gadgetsandgetaways.com.
+// gg-produktsoeg v4: produktsøgning til journalisten på gadgetsandgetaways.com.
 // Gemini 2.5 Flash med Google-søgning (samme nøgle GEMINI_API_KEY og samme metode som mf-media-search)
 // finder produkter i en kategori. Alt, Gemini siger, kontrolleres, før journalisten ser det:
 //   - hvert link hentes, og siden skal findes og handle om produktet,
 //   - prisen læses fra selve siden (metadata eller JSON-LD), hvis den kan. Ellers står den som «ikke bekræftet».
-// Handlinger: {action:"find", category, query?, antal? (1-20)} og {action:"priser", name, brand?}.
+// Handlinger: {action:"find", category, query?, antal? (1-30)} og {action:"priser", name, brand?}.
 // Søgningen kører som baggrundsjob (tabellen gg_soeg_jobs): funktionen svarer straks med {job}, og siden henter
 // resultatet derfra. Find deles i flere samtidige Gemini-kald med hver sin vinkel, og Geminis «tænketid» er slået fra,
 // så en søgning bliver færdig inden for tidsgrænsen. Kun administratorer på gg_admins, højst 30 kald i timen pr. person.
@@ -245,6 +245,9 @@ const VINKLER = [
   "newer or less obvious brands with strong reviews",
   "the most compact and lightweight options",
   "options that independent reviewers rate highest",
+  "durable options built for heavy weekly travel",
+  "premium options with the best comfort or battery life",
+  "well-reviewed options sold by Danish shops",
 ];
 
 async function koerFind(katKode: string, soeg: string, antal: number) {
@@ -275,7 +278,7 @@ ${SPROG_REGLER}`, 100000));
     sete.add(navn.toLowerCase()); kandidater.push({ ...f, name: navn });
   }
   const produkter: Record<string, unknown>[] = [];
-  await pulje(kandidater.slice(0, antal + 4), 6, async (f) => {
+  await pulje(kandidater.slice(0, antal + 8), 6, async (f) => {
     const navn = String(f.name);
     const why = String(f.why ?? "").replace(/\s+/g, " ").trim();
     if (why.length < 15 || why.length > 200) { afvist.push({ navn, grund: "Begrundelsen har forkert længde" }); return; }
@@ -344,7 +347,7 @@ Deno.serve(async (req: Request) => {
       katKode = String(body.category ?? "");
       if (!KATEGORIER[katKode]) return svar(req, { fejl: "Vælg en kategori." }, 400);
       soeg = String(body.query ?? "").replace(/["“”„«»]/g, " ").replace(/\s+/g, " ").trim().slice(0, 120);
-      antal = Math.min(20, Math.max(1, parseInt(body.antal, 10) || 6));
+      antal = Math.min(30, Math.max(1, parseInt(body.antal, 10) || 6));
     } else {
       navn = String(body.name ?? "").trim().slice(0, 200); maerke = String(body.brand ?? "").trim().slice(0, 100);
       if (navn.length < 2) return svar(req, { fejl: "Skriv produktets navn." }, 400);

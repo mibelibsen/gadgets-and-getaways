@@ -13,7 +13,7 @@ Log ind på https://gadgetsandgetaways.com/admin med din mail og din adgangskode
 | Finde og dele produkter | https://gadgetsandgetaways.com/admin/produkter |
 | Invitere eller fjerne personer | https://gadgetsandgetaways.com/admin/team |
 
-**Produkter.** Vælg en kategori, skriv evt. et søgeord, tryk «Søg». Søgningen bruger Gemini med Google-søgning og tjekker hvert link og hver pris. Du ser, om prisen er læst på selve siden eller kun kommer fra søgningen. Er den ikke læst på siden, skal du åbne linket og sætte hak, før produktet kan udgives. Du kan vælge op til 20 forslag, sortere dem efter pris eller rabat, og rabatten vises kun på siden, når førprisen er læst på forhandlerens side eller du har sat hak. Står der «OBS: pris afviger meget fra de andre tilbud», er prisen sandsynligvis forkert. Åbn linket og tjek selv. Produkterne vises på /gear og, de seks nyeste, på forsiden.
+**Produkter.** Vælg en kategori, skriv evt. et søgeord, tryk «Søg». Søgningen bruger Gemini med Google-søgning og tjekker hvert link og hver pris. Du ser, om prisen er læst på selve siden eller kun kommer fra søgningen. Er den ikke læst på siden, skal du åbne linket og sætte hak, før produktet kan udgives. Du kan vælge op til 30 forslag, sortere dem efter pris eller rabat, og rabatten vises kun på siden, når førprisen er læst på forhandlerens side eller du har sat hak. Står der «OBS: pris afviger meget fra de andre tilbud», er prisen sandsynligvis forkert. Åbn linket og tjek selv. Produkterne vises på /gear og, de seks nyeste, på forsiden.
 
 **Brødtekst i indlæg.** Tomme linjer deler afsnit. `## Overskrift`, `> citat`, `- punkt`, `**fed**`, `*kursiv*`, `[tekst](https://adresse)`, `![beskrivelse](https://billede)`.
 
