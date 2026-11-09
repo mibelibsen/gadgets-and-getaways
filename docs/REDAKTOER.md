@@ -44,3 +44,14 @@ Skal du ændre design, tilføje sider eller ændre, hvordan siden virker, arbejd
 ### Test, før noget går live
 - Åbn den rigtige forhåndsvisning og prøv hele flowet som en besøgende, på både PC og telefon (360 px bredde).
 - Ret du noget, som både besøgende og admin bruger, så prøv begge.
+
+## Sådan kommer en ændring på main
+
+En Claude-session på claude.ai/code skriver som udgangspunkt kun til sin egen gren (`claude/…`). Det er en sikkerhedsregel i sessionen, ikke en begrænsning på din GitHub-konto. Du har skriveadgang og må selv sætte ændringer på `main`. Der er to veje:
+
+1. **Pull request (virker altid).** Bed din Claude: «Opret en pull request fra grenen til main.» Eller åbn https://github.com/mibelibsen/gadgets-and-getaways/pulls, tryk **New pull request**, vælg din gren og tryk **Merge pull request**, når forhåndsvisningen ser rigtig ud. Det kræver kun din GitHub-konto.
+2. **Direkte til main.** Skriv til din Claude: «Du har min udtrykkelige tilladelse til at pushe til main.» Så må den. Hvis sessionen alligevel afviser det, så brug vej 1.
+
+Både redaktøren og Michael må sætte ændringer på `main`. Test først på grenens forhåndsvisning (PC og telefon på 360 px bredde). Et merge eller push til `main` er en udrulning til gadgetsandgetaways.com.
+
+**Efter en ændring i `supabase/functions/` skal funktionen udrulles på Supabase.** Det kan din Claude ikke. Skriv det til Michael, så udrulles funktionen først og siden siden, ellers kalder siden en funktion, der ikke kender ændringen.
