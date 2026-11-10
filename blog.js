@@ -2,7 +2,7 @@
 // Indlæg ligger i tabellen gg_posts. Besøgende ser kun udgivne indlæg (RLS). Al tekst bygges med
 // textContent, og links og billeder skal være https eller starte med / (aldrig javascript:).
 (()=>{
-const URL_="https://oevcaujuziyvrqipbuep.supabase.co",KEY="sb_publishable_NaXSNQX_oygK5mKwymivww_42PbewBJ";
+const URL_="https://pxdnszdukyjnbfmcpbvi.supabase.co",KEY="sb_publishable_PvPfK3dFW7I2A0U-31Z5Qw_-uIOnzPe";
 const TYPER={review:"Review",guide:"Guide",news:"New & noted"};
 
 const el=(tag,cls,tekst)=>{const e=document.createElement(tag);if(cls)e.className=cls;if(tekst!=null)e.textContent=tekst;return e};

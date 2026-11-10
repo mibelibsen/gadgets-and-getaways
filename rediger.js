@@ -1,6 +1,6 @@
 // Gadgets & Getaways: redigerbare tekster (samme metode som mandlige.dk). Henter gemte tekster for alle, og viser "Rediger siden" for topadmin.
 (()=>{
-const URL_="https://oevcaujuziyvrqipbuep.supabase.co",KEY="sb_publishable_NaXSNQX_oygK5mKwymivww_42PbewBJ";
+const URL_="https://pxdnszdukyjnbfmcpbvi.supabase.co",KEY="sb_publishable_PvPfK3dFW7I2A0U-31Z5Qw_-uIOnzPe";
 const sti=location.pathname.replace(/\/index\.html$/,"/").replace(/\.html$/,"");
 if(document.documentElement.hasAttribute("data-uden-rediger"))return;
 if(/^\/admin(\/|$)/.test(sti))return;

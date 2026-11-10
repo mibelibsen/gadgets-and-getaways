@@ -100,10 +100,18 @@ Deno.serve(async (req: Request) => {
     if (!p || p.role !== "topadmin") return svar(req, neutral);
     if (!(await maaSende(mail))) return svar(req, neutral);
 
-    const r = await admin.auth.admin.generateLink({ type: "recovery", email: mail });
+    /* Står personen på gg_admins, men har ingen konto endnu (fx efter flytningen
+       fra Store51 til eget projekt 10/11 2026), laves en invitation i stedet:
+       linket lader personen vælge en adgangskode og opretter kontoen. */
+    let type: "recovery" | "invite" = "recovery";
+    let r = await admin.auth.admin.generateLink({ type: "recovery", email: mail });
+    if (r.error || !r.data?.properties?.hashed_token) {
+      r = await admin.auth.admin.generateLink({ type: "invite", email: mail });
+      type = "invite";
+    }
     const token = r.data?.properties?.hashed_token;
     if (r.error || !token) { console.error("generateLink", r.error); return svar(req, neutral); }
-    const url = SITE + "/admin#token_hash=" + encodeURIComponent(token) + "&type=recovery";
+    const url = SITE + "/admin#token_hash=" + encodeURIComponent(token) + "&type=" + type;
     try { await sendMail(mail, url, false); } catch (e) { console.error(e); }
     return svar(req, neutral);
   } catch (e) {

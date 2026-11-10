@@ -7,8 +7,8 @@ Skriv kode, kommentarer og commit-beskeder på **dansk**. Teksten, som besøgend
 ## Opsætning
 - Repo: `mibelibsen/gadgets-and-getaways`. Vercel-team: `mibelibsens-projects` (team_mQu3h9xnYaeqpVu0FrqCK0QV).
 - Domæne: `gadgetsandgetaways.com`, købt hos Vercel 9. november 2026, udløber 9. november 2027, fornyes automatisk. DNS hos Vercel.
-- Supabase: samme projekt som mandlige.dk (`Store51`, ref `oevcaujuziyvrqipbuep`). Alle tabeller her har præfikset `gg_`. Rør ikke tabeller uden præfikset, de hører til kassen og mandlige.dk.
-- Adgang: egen adgangsliste `gg_admins` (rpc `gg_role()`, rollen `topadmin`), adskilt fra `mf_admins` på mandlige.dk. Brugerkonti ligger i Supabase Auth, som deles med mandlige.dk, men adgang til denne side gives kun gennem `gg_admins`. Alle administratorer kan alt: redigere tekster, skrive blog, uploade billeder og styre teamet. Skjulte elementer skjules med `[hidden]{display:none!important}` i `style.css`. Uden den regel står et element med `display` i stilarket synligt, selv om det er skjult.
+- Supabase: eget projekt `gadgets-and-getaways`, ref `pxdnszdukyjnbfmcpbvi` (flyttet fra Store51 10. november 2026, Michael: «tag gadgets nu»). Alle tabeller har præfikset `gg_`. Indtil 9. november lå sitet i kassens projekt Store51 (`oevcaujuziyvrqipbuep`); det projekt må sitet ikke længere pege på.
+- Adgang: egen adgangsliste `gg_admins` (rpc `gg_role()`, rollen `topadmin`), adskilt fra `mf_admins` på mandlige.dk. Brugerkonti ligger i projektets egen Supabase Auth (ikke længere delt med mandlige.dk). Efter flytningen vælger hver administrator en adgangskode igen via «Glemt adgangskode»: står mailen på `gg_admins` uden en konto, sender `gg-nulstil` en invitation i stedet. Alle administratorer kan alt: redigere tekster, skrive blog, uploade billeder og styre teamet. Skjulte elementer skjules med `[hidden]{display:none!important}` i `style.css`. Uden den regel står et element med `display` i stilarket synligt, selv om det er skjult.
 - Hemmeligheder (Gemini-nøgle, affiliate-nøgler) hører kun til som secrets i Supabase Edge Functions. Aldrig i koden. Den publishable key i `rediger.js` og `admin/index.html` er offentlig og må stå.
 
 ## Filer
@@ -83,4 +83,4 @@ Affiliate-partnere (rigtige partnerlinks og sporing), hoteller og flydeals fra p
 Se `docs/REDAKTOER.md`.
 - Dagligt arbejde sker i admin: tekster rettes direkte på siden med «Rediger siden», blog og anmeldelser skrives under /admin/blog, billeder uploades dér.
 - Ændringer i selve sitet (kode, design, nye sider) laves i dette repo. Arbejd på en kort gren (`claude/…`), og push den. Vercel bygger en forhåndsvisning af grenen. Et push til `main` er en udrulning til gadgetsandgetaways.com.
-- Rør ikke Supabase-tabeller uden præfikset `gg_`, og ret ikke andre funktioner end `gg-nulstil`. Projektet deles med kassen (Store51) og mandlige.dk.
+- Projektet er sitets eget. Edge Functions: `gg-nulstil` og `gg-produktsoeg` (v4; den udrullede er byte for byte samme som i Store51 9/11, kontrolsum 9a5aeb34…). Secrets, der skal stå på projektet: `GEMINI_API_KEY`, `RESEND_API_KEY` (valgfrit `GEMINI_MODEL`, `GG_MAIL_FRA`).
